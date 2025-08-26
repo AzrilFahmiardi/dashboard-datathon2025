@@ -7,7 +7,20 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Users, Target, DollarSign, MapPin, Heart, Eye, Plus, Filter, Search } from "lucide-react"
+import {
+  Users,
+  DollarSign,
+  MapPin,
+  Heart,
+  Eye,
+  Plus,
+  Filter,
+  Search,
+  FileText,
+  Calendar,
+  TrendingUp,
+  TrendingDown,
+} from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { BrandSidebar } from "@/components/brand-sidebar"
@@ -92,51 +105,95 @@ export default function BrandDashboard() {
             </Button>
           </div>
 
-          {/* Metrics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Budget Usage</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">72%</div>
-                <Progress value={72} className="mt-2" />
-                <p className="text-xs text-muted-foreground mt-2">Rp 36M dari Rp 50M</p>
-              </CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
+            <Card className="p-4">
+              <div className="flex items-start justify-between">
+                <FileText className="h-5 w-5 text-muted-foreground" />
+                <div className="flex items-center text-sm text-green-600">
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                  +12.5%
+                </div>
+              </div>
+              <div className="mt-3">
+                <div className="text-2xl font-bold">1,247</div>
+                <div className="text-sm font-medium text-foreground">Total Campaigns</div>
+                <div className="text-xs text-muted-foreground">Active campaigns</div>
+              </div>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Audience Match</CardTitle>
-                <Target className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">88%</div>
-                <p className="text-xs text-muted-foreground">+12% dari campaign sebelumnya</p>
-              </CardContent>
+            <Card className="p-4">
+              <div className="flex items-start justify-between">
+                <Eye className="h-5 w-5 text-muted-foreground" />
+                <div className="flex items-center text-sm text-green-600">
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                  +23.1%
+                </div>
+              </div>
+              <div className="mt-3">
+                <div className="text-2xl font-bold">89.2K</div>
+                <div className="text-sm font-medium text-foreground">Total Reach</div>
+                <div className="text-xs text-muted-foreground">This month</div>
+              </div>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Avg Engagement</CardTitle>
-                <Heart className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">4.4%</div>
-                <p className="text-xs text-muted-foreground">Above industry average</p>
-              </CardContent>
+            <Card className="p-4">
+              <div className="flex items-start justify-between">
+                <Heart className="h-5 w-5 text-muted-foreground" />
+                <div className="flex items-center text-sm text-green-600">
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                  +8.2%
+                </div>
+              </div>
+              <div className="mt-3">
+                <div className="text-2xl font-bold">2,847</div>
+                <div className="text-sm font-medium text-foreground">Engagements</div>
+                <div className="text-xs text-muted-foreground">User engagement</div>
+              </div>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Potential Reach</CardTitle>
-                <Eye className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">245K</div>
-                <p className="text-xs text-muted-foreground">Estimated total reach</p>
-              </CardContent>
+            <Card className="p-4">
+              <div className="flex items-start justify-between">
+                <Users className="h-5 w-5 text-muted-foreground" />
+                <div className="flex items-center text-sm text-red-600">
+                  <TrendingDown className="h-3 w-3 mr-1" />
+                  -2.1%
+                </div>
+              </div>
+              <div className="mt-3">
+                <div className="text-2xl font-bold">24</div>
+                <div className="text-sm font-medium text-foreground">Active Influencers</div>
+                <div className="text-xs text-muted-foreground">Collaborating now</div>
+              </div>
+            </Card>
+
+            <Card className="p-4">
+              <div className="flex items-start justify-between">
+                <Calendar className="h-5 w-5 text-muted-foreground" />
+                <div className="flex items-center text-sm text-green-600">
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                  +5.3%
+                </div>
+              </div>
+              <div className="mt-3">
+                <div className="text-2xl font-bold">18</div>
+                <div className="text-sm font-medium text-foreground">Scheduled Posts</div>
+                <div className="text-xs text-muted-foreground">Upcoming content</div>
+              </div>
+            </Card>
+
+            <Card className="p-4">
+              <div className="flex items-start justify-between">
+                <DollarSign className="h-5 w-5 text-muted-foreground" />
+                <div className="flex items-center text-sm text-green-600">
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                  +15.7%
+                </div>
+              </div>
+              <div className="mt-3">
+                <div className="text-2xl font-bold">3,456</div>
+                <div className="text-sm font-medium text-foreground">Budget Used</div>
+                <div className="text-xs text-muted-foreground">In thousands</div>
+              </div>
             </Card>
           </div>
 
