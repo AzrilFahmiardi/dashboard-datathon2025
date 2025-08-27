@@ -1,3 +1,4 @@
+  
 "use client"
 
 import { useState } from "react"
@@ -83,7 +84,7 @@ export default function InfluencerDashboard() {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card>
+            <Card className="hover:shadow-lg transition-shadow duration-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Followers</CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
@@ -94,7 +95,7 @@ export default function InfluencerDashboard() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="hover:shadow-lg transition-shadow duration-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Engagement Rate</CardTitle>
                 <Heart className="h-4 w-4 text-muted-foreground" />
@@ -105,7 +106,7 @@ export default function InfluencerDashboard() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="hover:shadow-lg transition-shadow duration-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Avg Views</CardTitle>
                 <Eye className="h-4 w-4 text-muted-foreground" />
@@ -116,7 +117,7 @@ export default function InfluencerDashboard() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="hover:shadow-lg transition-shadow duration-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">This Month</CardTitle>
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
@@ -137,7 +138,7 @@ export default function InfluencerDashboard() {
             </TabsList>
 
             <TabsContent value="profile" className="space-y-6">
-              <Card>
+              <Card className="hover:shadow-lg transition-shadow duration-200">
                 <CardHeader>
                   <CardTitle>Edit Profile</CardTitle>
                   <CardDescription>Update your influencer profile information</CardDescription>
@@ -275,7 +276,7 @@ export default function InfluencerDashboard() {
             </TabsContent>
 
             <TabsContent value="preview" className="space-y-6">
-              <Card>
+              <Card className="hover:shadow-lg transition-shadow duration-200">
                 <CardHeader>
                   <CardTitle>Profile Preview</CardTitle>
                   <CardDescription>How brands will see your profile</CardDescription>
@@ -354,7 +355,7 @@ export default function InfluencerDashboard() {
             </TabsContent>
 
             <TabsContent value="campaigns" className="space-y-6">
-              <Card>
+              <Card className="hover:shadow-lg transition-shadow duration-200">
                 <CardHeader>
                   <CardTitle>My Campaigns</CardTitle>
                   <CardDescription>Track your campaign history and earnings</CardDescription>
@@ -362,7 +363,7 @@ export default function InfluencerDashboard() {
                 <CardContent>
                   <div className="space-y-4">
                     {recentCampaigns.map((campaign) => (
-                      <div key={campaign.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div key={campaign.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all duration-200">
                         <div>
                           <h4 className="font-semibold">{campaign.brand}</h4>
                           <p className="text-sm text-muted-foreground">{campaign.product}</p>
@@ -384,7 +385,7 @@ export default function InfluencerDashboard() {
 
             <TabsContent value="analytics" className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card>
+                <Card className="hover:shadow-lg transition-shadow duration-200">
                   <CardHeader>
                     <CardTitle>Audience Demographics</CardTitle>
                   </CardHeader>
@@ -410,7 +411,7 @@ export default function InfluencerDashboard() {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="hover:shadow-lg transition-shadow duration-200">
                   <CardHeader>
                     <CardTitle>Top Locations</CardTitle>
                   </CardHeader>
