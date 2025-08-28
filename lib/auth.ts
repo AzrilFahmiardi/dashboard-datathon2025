@@ -136,3 +136,31 @@ export const logoutUser = async () => {
     throw error
   }
 }
+
+// Get current user data with profile
+export const getCurrentUserData = async (user: User) => {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', user.uid))
+    
+    if (!userDoc.exists()) {
+      return null
+    }
+
+    const userData = userDoc.data() as BaseUser
+
+    // Get specific profile
+    let profile = null
+    if (userData.userType === 'brand') {
+      const brandDoc = await getDoc(doc(db, 'brands', user.uid))
+      profile = brandDoc.exists() ? brandDoc.data() : null
+    } else if (userData.userType === 'influencer') {
+      const influencerDoc = await getDoc(doc(db, 'influencers', user.uid))
+      profile = influencerDoc.exists() ? influencerDoc.data() : null
+    }
+
+    return { userData, profile }
+  } catch (error) {
+    console.error('Error getting user data:', error)
+    throw error
+  }
+}

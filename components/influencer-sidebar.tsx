@@ -2,12 +2,19 @@
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import {
   LayoutDashboard,
   LogOut,
+  User,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useAuth } from "@/contexts/auth-context"
+import { logoutUser } from "@/lib/auth"
+import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 
 const sidebarItems = [
   {
@@ -19,9 +26,21 @@ const sidebarItems = [
 
 export function InfluencerSidebar() {
   const pathname = usePathname()
+  const { user, userData, profile, loading } = useAuth()
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser()
+      toast.success('Berhasil logout')
+      router.push('/login/influencer')
+    } catch (error) {
+      toast.error('Gagal logout')
+    }
+  }
 
   return (
-    <div className="w-64 bg-sidebar border-r border-sidebar-border">
+    <div className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col h-full">
       <div className="p-6">
         <div className="flex items-center space-x-2">
           <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
@@ -31,7 +50,36 @@ export function InfluencerSidebar() {
         </div>
       </div>
 
-      <nav className="px-4 pb-4">
+      {/* User Info */}
+      {user && !loading && (
+        <div className="px-4 mb-4">
+          <div className="bg-sidebar-accent rounded-lg p-3">
+            <div className="flex items-center space-x-3">
+              <Avatar className="w-10 h-10">
+                <AvatarImage src="" />
+                <AvatarFallback className="bg-primary text-primary-foreground">
+                  {profile?.username ? profile.username.charAt(1).toUpperCase() : 'U'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-sidebar-accent-foreground truncate">
+                  {profile?.username || 'User'}
+                </p>
+                <div className="flex items-center space-x-1">
+                  <Badge variant="secondary" className="text-xs">
+                    Influencer
+                  </Badge>
+                </div>
+                <p className="text-xs text-sidebar-accent-foreground/70 truncate">
+                  {userData?.email}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <nav className="px-4 pb-4 flex-1">
         <div className="space-y-1">
           {sidebarItems.map((item) => {
             const Icon = item.icon
@@ -54,7 +102,11 @@ export function InfluencerSidebar() {
         </div>
 
         <div className="mt-8 pt-4 border-t border-sidebar-border">
-          <Button variant="ghost" className="w-full justify-start text-destructive hover:text-destructive">
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start text-destructive hover:text-destructive"
+            onClick={handleLogout}
+          >
             <LogOut className="mr-2 h-4 w-4" />
             Logout
           </Button>

@@ -1,12 +1,68 @@
+"use client"
+
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { ArrowLeft, Target } from "lucide-react"
+import { ArrowLeft, Target, Loader2 } from "lucide-react"
 import Link from "next/link"
+import { loginUser } from "@/lib/auth"
+import { toast } from "sonner"
 
 export default function BrandLoginPage() {
+  const [isLoading, setIsLoading] = useState(false)
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    remember: false
+  })
+  const router = useRouter()
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+
+    try {
+      const result = await loginUser(formData.email, formData.password)
+      
+      // Check if user is a brand
+      if (result.userData.userType !== 'brand') {
+        toast.error('Akun ini bukan akun brand. Silakan login di halaman influencer.')
+        return
+      }
+      
+      toast.success('Login berhasil!')
+      router.push('/dashboard/brand')
+    } catch (error: any) {
+      console.error('Login error:', error)
+      
+      let errorMessage = 'Gagal login. Silakan coba lagi.'
+      
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        errorMessage = 'Email atau password salah.'
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Format email tidak valid.'
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Terlalu banyak percobaan login. Coba lagi nanti.'
+      }
+      
+      toast.error(errorMessage)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -32,43 +88,77 @@ export default function BrandLoginPage() {
             <CardTitle>Login Brand</CardTitle>
             <CardDescription>Masukkan kredensial brand Anda untuk mengakses dashboard</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="brand@company.com" className="w-full" />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" placeholder="••••••••" className="w-full" />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <input type="checkbox" id="remember" className="rounded" />
-                <Label htmlFor="remember" className="text-sm">
-                  Ingat saya
-                </Label>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input 
+                  id="email" 
+                  name="email"
+                  type="email" 
+                  placeholder="brand@company.com" 
+                  className="w-full"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                />
               </div>
-              <Link href="#" className="text-sm text-primary hover:underline">
-                Lupa password?
-              </Link>
-            </div>
 
-            <Button className="w-full" size="lg">
-              Masuk ke Dashboard
-            </Button>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input 
+                  id="password" 
+                  name="password"
+                  type="password" 
+                  placeholder="••••••••" 
+                  className="w-full"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
 
-            <Separator />
-
-            <div className="text-center">
-              <p className="text-muted-foreground text-sm">
-                Belum punya akun brand?{" "}
-                <Link href="/register/brand" className="text-primary hover:underline font-medium">
-                  Daftar sekarang
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <input 
+                    type="checkbox" 
+                    id="remember" 
+                    name="remember"
+                    className="rounded"
+                    checked={formData.remember}
+                    onChange={handleChange}
+                  />
+                  <Label htmlFor="remember" className="text-sm">
+                    Ingat saya
+                  </Label>
+                </div>
+                <Link href="#" className="text-sm text-primary hover:underline">
+                  Lupa password?
                 </Link>
-              </p>
-            </div>
+              </div>
+
+              <Button className="w-full" size="lg" type="submit" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Masuk...
+                  </>
+                ) : (
+                  'Masuk ke Dashboard'
+                )}
+              </Button>
+
+              <Separator />
+
+              <div className="text-center">
+                <p className="text-muted-foreground text-sm">
+                  Belum punya akun brand?{" "}
+                  <Link href="/register/brand" className="text-primary hover:underline font-medium">
+                    Daftar sekarang
+                  </Link>
+                </p>
+              </div>
+            </form>
           </CardContent>
         </Card>
       </div>
