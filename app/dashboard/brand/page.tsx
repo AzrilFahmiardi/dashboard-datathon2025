@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import FirebaseTest from "@/components/FirebaseTest"
 import {
   Users,
   DollarSign,
@@ -785,6 +786,11 @@ export default function BrandDashboard() {
               <Plus className="w-4 h-4 mr-2" />
               Buat Campaign Baru
             </Button>
+          </div>
+
+          {/* Firebase Test - temporary */}
+          <div className="mb-6">
+            <FirebaseTest />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
