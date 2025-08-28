@@ -8,87 +8,309 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { BrandSidebar } from "@/components/brand-sidebar"
-import { Users, Heart, Eye, MapPin, Search, Filter, MessageCircle, Instagram, Plus } from "lucide-react"
+import { Users, Heart, Eye, MapPin, Search, Filter, MessageCircle, Plus } from "lucide-react"
 
-// Mock data untuk influencers
+// Mock data untuk influencers berdasarkan data real
 const influencers = [
   {
     id: 1,
-    name: "Sarah Beauty",
-    username: "@sarahbeauty",
+    name: "Rere Onni",
+    username: "@rereeonni",
+    influencerId: "INF001",
     avatar: "/placeholder.svg?height=60&width=60",
-    followers: "125K",
-    engagement: "4.2%",
-    averageViews: "45K",
-    niche: ["Beauty", "Skincare"],
-    location: "Jakarta, Indonesia",
-    price: "Rp 15,000,000",
-    verified: true
+    tier: "Nano",
+    followers: "85K", // Nano tier
+    engagement: "3.7%",
+    averageViews: "13K",
+    avgPostLike: "2.1K",
+    avgComment: "389",
+    niche: ["Lifestyle"],
+    location: "Semarang, Indonesia",
+    rateCardStory: "Rp 300,000",
+    rateCardFeeds: "Rp 800,000", 
+    rateCardReels: "Rp 1,800,000",
+    verified: false,
+    trendingStatus: true,
+    likeabilitySentiment: "Positive",
+    familiarityMedia: 90,
+    campaignSuccess: false,
+    hasRelevantHistory: false,
+    behaviorConsistency: true,
+    randomEndorseRate: 0.35,
+    audienceAnalytics: {
+      topLocations: {
+        countries: [
+          { country: "Indonesia", percent: 80 },
+          { country: "Thailand", percent: 14 },
+          { country: "Malaysia", percent: 6 }
+        ],
+        cities: [
+          { city: "Semarang", percent: 42 },
+          { city: "Bandung", percent: 34 },
+          { city: "Jakarta", percent: 24 }
+        ]
+      },
+      ageRange: [
+        { range: "35-44", percent: 45 },
+        { range: "13-17", percent: 31 },
+        { range: "25-34", percent: 9 }
+      ],
+      gender: [
+        { gender: "Female", percent: 81 },
+        { gender: "Male", percent: 18 },
+        { gender: "Unspecified", percent: 1 }
+      ]
+    }
   },
   {
     id: 2,
-    name: "Maya Lifestyle",
-    username: "@mayalifestyle", 
+    name: "Nicole Trisia",
+    username: "@nicoletrisia",
+    influencerId: "INF002",
     avatar: "/placeholder.svg?height=60&width=60",
-    followers: "89K",
-    engagement: "5.1%",
+    tier: "Nano",
+    followers: "92K",
+    engagement: "2.2%",
     averageViews: "32K",
-    niche: ["Lifestyle", "Fashion"],
-    location: "Bandung, Indonesia",
-    price: "Rp 12,000,000",
-    verified: true
+    avgPostLike: "4.6K",
+    avgComment: "483",
+    niche: ["Food"],
+    location: "Jakarta, Indonesia",
+    rateCardStory: "Rp 320,000",
+    rateCardFeeds: "Rp 780,000",
+    rateCardReels: "Rp 1,900,000",
+    verified: true,
+    trendingStatus: true,
+    likeabilitySentiment: "Neutral",
+    familiarityMedia: 82,
+    campaignSuccess: false,
+    hasRelevantHistory: true,
+    behaviorConsistency: false,
+    randomEndorseRate: 0.55,
+    audienceAnalytics: {
+      topLocations: {
+        countries: [
+          { country: "Indonesia", percent: 85 },
+          { country: "Singapore", percent: 10 },
+          { country: "Malaysia", percent: 5 }
+        ],
+        cities: [
+          { city: "Jakarta", percent: 55 },
+          { city: "Surabaya", percent: 25 },
+          { city: "Bandung", percent: 20 }
+        ]
+      },
+      ageRange: [
+        { range: "25-34", percent: 42 },
+        { range: "18-24", percent: 35 },
+        { range: "35-44", percent: 23 }
+      ],
+      gender: [
+        { gender: "Female", percent: 75 },
+        { gender: "Male", percent: 23 },
+        { gender: "Unspecified", percent: 2 }
+      ]
+    }
   },
   {
     id: 3,
-    name: "Rina Skincare",
-    username: "@rinaskincare",
+    name: "Fransiska Sonia",
+    username: "@fransiskasonia",
+    influencerId: "INF003",
     avatar: "/placeholder.svg?height=60&width=60",
-    followers: "156K",
-    engagement: "3.8%",
-    averageViews: "58K",
-    niche: ["Skincare", "Beauty"],
-    location: "Surabaya, Indonesia",
-    price: "Rp 18,000,000",
-    verified: false
+    tier: "Nano",
+    followers: "78K",
+    engagement: "5.3%",
+    averageViews: "21K",
+    avgPostLike: "4.1K",
+    avgComment: "199",
+    niche: ["Fashion"],
+    location: "Bandung, Indonesia",
+    rateCardStory: "Rp 310,000",
+    rateCardFeeds: "Rp 820,000",
+    rateCardReels: "Rp 1,850,000",
+    verified: false,
+    trendingStatus: false,
+    likeabilitySentiment: "Neutral",
+    familiarityMedia: 81,
+    campaignSuccess: true,
+    hasRelevantHistory: false,
+    behaviorConsistency: false,
+    randomEndorseRate: 0.24,
+    audienceAnalytics: {
+      topLocations: {
+        countries: [
+          { country: "Indonesia", percent: 88 },
+          { country: "Malaysia", percent: 8 },
+          { country: "Singapore", percent: 4 }
+        ],
+        cities: [
+          { city: "Bandung", percent: 48 },
+          { city: "Jakarta", percent: 32 },
+          { city: "Yogyakarta", percent: 20 }
+        ]
+      },
+      ageRange: [
+        { range: "18-24", percent: 52 },
+        { range: "25-34", percent: 38 },
+        { range: "13-17", percent: 10 }
+      ],
+      gender: [
+        { gender: "Female", percent: 87 },
+        { gender: "Male", percent: 12 },
+        { gender: "Unspecified", percent: 1 }
+      ]
+    }
   },
   {
     id: 4,
-    name: "Dika Fashion",
-    username: "@dikafashion",
+    name: "Maya Sari",
+    username: "@mayasari",
+    influencerId: "INF004",
     avatar: "/placeholder.svg?height=60&width=60",
-    followers: "203K",
-    engagement: "4.5%",
-    averageViews: "72K",
-    niche: ["Fashion", "Lifestyle"],
-    location: "Jakarta, Indonesia", 
-    price: "Rp 22,000,000",
-    verified: true
+    tier: "Micro",
+    followers: "156K",
+    engagement: "4.1%",
+    averageViews: "45K",
+    avgPostLike: "6.4K",
+    avgComment: "542",
+    niche: ["Beauty", "Skincare"],
+    location: "Jakarta, Indonesia",
+    rateCardStory: "Rp 500,000",
+    rateCardFeeds: "Rp 1,200,000",
+    rateCardReels: "Rp 2,800,000",
+    verified: true,
+    trendingStatus: true,
+    likeabilitySentiment: "Positive",
+    familiarityMedia: 92,
+    campaignSuccess: true,
+    hasRelevantHistory: true,
+    behaviorConsistency: true,
+    randomEndorseRate: 0.15,
+    audienceAnalytics: {
+      topLocations: {
+        countries: [
+          { country: "Indonesia", percent: 82 },
+          { country: "Malaysia", percent: 12 },
+          { country: "Singapore", percent: 6 }
+        ],
+        cities: [
+          { city: "Jakarta", percent: 45 },
+          { city: "Surabaya", percent: 28 },
+          { city: "Bandung", percent: 27 }
+        ]
+      },
+      ageRange: [
+        { range: "25-34", percent: 48 },
+        { range: "18-24", percent: 32 },
+        { range: "35-44", percent: 20 }
+      ],
+      gender: [
+        { gender: "Female", percent: 89 },
+        { gender: "Male", percent: 10 },
+        { gender: "Unspecified", percent: 1 }
+      ]
+    }
   },
   {
     id: 5,
-    name: "Alex Tech",
-    username: "@alextech",
+    name: "Andi Pratama",
+    username: "@andipratama",
+    influencerId: "INF005",
     avatar: "/placeholder.svg?height=60&width=60",
-    followers: "95K",
-    engagement: "6.2%",
-    averageViews: "41K",
-    niche: ["Technology", "Reviews"],
-    location: "Yogyakarta, Indonesia",
-    price: "Rp 14,000,000",
-    verified: true
+    tier: "Micro",
+    followers: "203K",
+    engagement: "3.8%",
+    averageViews: "58K",
+    avgPostLike: "7.7K",
+    avgComment: "423",
+    niche: ["Technology", "Lifestyle"],
+    location: "Surabaya, Indonesia",
+    rateCardStory: "Rp 650,000",
+    rateCardFeeds: "Rp 1,500,000",
+    rateCardReels: "Rp 3,200,000",
+    verified: true,
+    trendingStatus: false,
+    likeabilitySentiment: "Positive",
+    familiarityMedia: 76,
+    campaignSuccess: true,
+    hasRelevantHistory: true,
+    behaviorConsistency: true,
+    randomEndorseRate: 0.28,
+    audienceAnalytics: {
+      topLocations: {
+        countries: [
+          { country: "Indonesia", percent: 78 },
+          { country: "Malaysia", percent: 15 },
+          { country: "Thailand", percent: 7 }
+        ],
+        cities: [
+          { city: "Surabaya", percent: 38 },
+          { city: "Jakarta", percent: 35 },
+          { city: "Malang", percent: 27 }
+        ]
+      },
+      ageRange: [
+        { range: "18-24", percent: 45 },
+        { range: "25-34", percent: 35 },
+        { range: "13-17", percent: 20 }
+      ],
+      gender: [
+        { gender: "Male", percent: 65 },
+        { gender: "Female", percent: 33 },
+        { gender: "Unspecified", percent: 2 }
+      ]
+    }
   },
   {
     id: 6,
-    name: "Luna Food",
-    username: "@lunafood",
+    name: "Lisa Cooking",
+    username: "@lisacooking",
+    influencerId: "INF006",
     avatar: "/placeholder.svg?height=60&width=60",
-    followers: "78K",
-    engagement: "7.1%",
+    tier: "Nano",
+    followers: "64K",
+    engagement: "6.2%",
     averageViews: "28K",
-    niche: ["Food", "Lifestyle"],
-    location: "Bali, Indonesia",
-    price: "Rp 11,000,000",
-    verified: false
+    avgPostLike: "3.9K",
+    avgComment: "312",
+    niche: ["Food", "Cooking"],
+    location: "Yogyakarta, Indonesia",
+    rateCardStory: "Rp 280,000",
+    rateCardFeeds: "Rp 750,000",
+    rateCardReels: "Rp 1,650,000",
+    verified: false,
+    trendingStatus: true,
+    likeabilitySentiment: "Positive",
+    familiarityMedia: 87,
+    campaignSuccess: false,
+    hasRelevantHistory: false,
+    behaviorConsistency: true,
+    randomEndorseRate: 0.42,
+    audienceAnalytics: {
+      topLocations: {
+        countries: [
+          { country: "Indonesia", percent: 91 },
+          { country: "Malaysia", percent: 6 },
+          { country: "Singapore", percent: 3 }
+        ],
+        cities: [
+          { city: "Yogyakarta", percent: 52 },
+          { city: "Solo", percent: 28 },
+          { city: "Jakarta", percent: 20 }
+        ]
+      },
+      ageRange: [
+        { range: "25-34", percent: 42 },
+        { range: "35-44", percent: 38 },
+        { range: "18-24", percent: 20 }
+      ],
+      gender: [
+        { gender: "Female", percent: 84 },
+        { gender: "Male", percent: 15 },
+        { gender: "Unspecified", percent: 1 }
+      ]
+    }
   }
 ]
 
@@ -96,14 +318,16 @@ export default function InfluencerListPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedNiche, setSelectedNiche] = useState("all")
   const [selectedLocation, setSelectedLocation] = useState("all")
+  const [selectedTier, setSelectedTier] = useState("all")
 
   const filteredInfluencers = influencers.filter(influencer => {
     const matchesSearch = influencer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          influencer.username.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesNiche = selectedNiche === "all" || influencer.niche.includes(selectedNiche)
     const matchesLocation = selectedLocation === "all" || influencer.location.includes(selectedLocation)
+    const matchesTier = selectedTier === "all" || influencer.tier === selectedTier
     
-    return matchesSearch && matchesNiche && matchesLocation
+    return matchesSearch && matchesNiche && matchesLocation && matchesTier
   })
 
   return (
@@ -130,7 +354,7 @@ export default function InfluencerListPage() {
               <CardTitle>Search & Filter</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -140,6 +364,16 @@ export default function InfluencerListPage() {
                     className="pl-10"
                   />
                 </div>
+                <Select value={selectedTier} onValueChange={setSelectedTier}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select tier" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Tiers</SelectItem>
+                    <SelectItem value="Nano">Nano (50K-100K)</SelectItem>
+                    <SelectItem value="Micro">Micro (100K-500K)</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Select value={selectedNiche} onValueChange={setSelectedNiche}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select niche" />
@@ -152,6 +386,7 @@ export default function InfluencerListPage() {
                     <SelectItem value="Lifestyle">Lifestyle</SelectItem>
                     <SelectItem value="Technology">Technology</SelectItem>
                     <SelectItem value="Food">Food</SelectItem>
+                    <SelectItem value="Cooking">Cooking</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={selectedLocation} onValueChange={setSelectedLocation}>
@@ -164,7 +399,7 @@ export default function InfluencerListPage() {
                     <SelectItem value="Bandung">Bandung</SelectItem>
                     <SelectItem value="Surabaya">Surabaya</SelectItem>
                     <SelectItem value="Yogyakarta">Yogyakarta</SelectItem>
-                    <SelectItem value="Bali">Bali</SelectItem>
+                    <SelectItem value="Semarang">Semarang</SelectItem>
                   </SelectContent>
                 </Select>
                 <Button variant="outline">
@@ -198,12 +433,9 @@ export default function InfluencerListPage() {
                       <div>
                         <div className="flex items-center space-x-2">
                           <h3 className="font-semibold text-lg">{influencer.name}</h3>
-                          {influencer.verified && (
-                            <Badge variant="secondary" className="text-xs">
-                              <Instagram className="w-3 h-3 mr-1" />
-                              Verified
-                            </Badge>
-                          )}
+                          <Badge variant="secondary" className="text-xs">
+                            {influencer.tier}
+                          </Badge>
                         </div>
                         <p className="text-muted-foreground text-sm">{influencer.username}</p>
                         <div className="flex items-center text-xs text-muted-foreground mt-1">
@@ -217,7 +449,7 @@ export default function InfluencerListPage() {
 
                 <CardContent className="space-y-4">
                   {/* Stats */}
-                  <div className="grid grid-cols-3 gap-4 text-center">
+                  <div className="grid grid-cols-4 gap-4 text-center">
                     <div>
                       <div className="flex items-center justify-center text-primary mb-1">
                         <Users className="w-4 h-4" />
@@ -239,6 +471,13 @@ export default function InfluencerListPage() {
                       <p className="text-lg font-semibold">{influencer.averageViews}</p>
                       <p className="text-xs text-muted-foreground">Avg Views</p>
                     </div>
+                    <div>
+                      <div className="flex items-center justify-center text-primary mb-1">
+                        <MessageCircle className="w-4 h-4" />
+                      </div>
+                      <p className="text-lg font-semibold">{influencer.avgComment}</p>
+                      <p className="text-xs text-muted-foreground">Avg Comments</p>
+                    </div>
                   </div>
 
                   {/* Niches */}
@@ -252,12 +491,27 @@ export default function InfluencerListPage() {
                     </div>
                   </div>
 
-                  {/* Price & Actions */}
-                  <div className="flex items-center justify-between pt-2">
+                  {/* Rate Cards & Actions */}
+                  <div className="space-y-3 pt-2">
                     <div>
-                      <p className="text-lg font-bold text-primary">{influencer.price}</p>
-                      <p className="text-xs text-muted-foreground">Starting price</p>
+                      <p className="text-sm font-medium text-muted-foreground mb-2">Rate Cards</p>
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        <div className="bg-muted/50 rounded-lg p-2">
+                          <p className="text-sm font-semibold">{influencer.rateCardStory}</p>
+                          <p className="text-xs text-muted-foreground">Story</p>
+                        </div>
+                        <div className="bg-muted/50 rounded-lg p-2">
+                          <p className="text-sm font-semibold">{influencer.rateCardFeeds}</p>
+                          <p className="text-xs text-muted-foreground">Feeds</p>
+                        </div>
+                        <div className="bg-muted/50 rounded-lg p-2">
+                          <p className="text-sm font-semibold">{influencer.rateCardReels}</p>
+                          <p className="text-xs text-muted-foreground">Reels</p>
+                        </div>
+                      </div>
                     </div>
+
+                    {/* Additional Info */}
                     <div className="flex space-x-2">
                       <Button variant="outline" size="sm">
                         <MessageCircle className="w-4 h-4" />
