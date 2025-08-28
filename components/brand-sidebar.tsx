@@ -13,39 +13,14 @@ const sidebarItems = [
     icon: LayoutDashboard,
   },
   {
-    title: "Find Influencers",
-    href: "/dashboard/brand/discover",
-    icon: Search,
+    title: "Influencer List",
+    href: "/dashboard/brand/influencers",
+    icon: Users,
   },
   {
     title: "My Campaigns",
     href: "/dashboard/brand/campaigns",
     icon: Target,
-  },
-  {
-    title: "Influencer Lists",
-    href: "/dashboard/brand/lists",
-    icon: Users,
-  },
-  {
-    title: "Analytics",
-    href: "/dashboard/brand/analytics",
-    icon: BarChart3,
-  },
-  {
-    title: "Content Calendar",
-    href: "/dashboard/brand/calendar",
-    icon: Calendar,
-  },
-  {
-    title: "Reports",
-    href: "/dashboard/brand/reports",
-    icon: FileText,
-  },
-  {
-    title: "Settings",
-    href: "/dashboard/brand/settings",
-    icon: Settings,
   },
 ]
 
