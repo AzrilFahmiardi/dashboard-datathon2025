@@ -4,14 +4,6 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
   LayoutDashboard,
-  User,
-  Target,
-  BarChart3,
-  Settings,
-  Search,
-  Calendar,
-  DollarSign,
-  MessageSquare,
   LogOut,
 } from "lucide-react"
 import Link from "next/link"
@@ -22,46 +14,6 @@ const sidebarItems = [
     title: "Dashboard",
     href: "/dashboard/influencer",
     icon: LayoutDashboard,
-  },
-  {
-    title: "My Profile",
-    href: "/dashboard/influencer/profile",
-    icon: User,
-  },
-  {
-    title: "Campaign Opportunities",
-    href: "/dashboard/influencer/opportunities",
-    icon: Search,
-  },
-  {
-    title: "My Campaigns",
-    href: "/dashboard/influencer/campaigns",
-    icon: Target,
-  },
-  {
-    title: "Analytics",
-    href: "/dashboard/influencer/analytics",
-    icon: BarChart3,
-  },
-  {
-    title: "Earnings",
-    href: "/dashboard/influencer/earnings",
-    icon: DollarSign,
-  },
-  {
-    title: "Messages",
-    href: "/dashboard/influencer/messages",
-    icon: MessageSquare,
-  },
-  {
-    title: "Content Calendar",
-    href: "/dashboard/influencer/calendar",
-    icon: Calendar,
-  },
-  {
-    title: "Settings",
-    href: "/dashboard/influencer/settings",
-    icon: Settings,
   },
 ]
 

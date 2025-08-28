@@ -13,50 +13,92 @@ import { Textarea } from "@/components/ui/textarea"
 import { Users, Heart, Eye, MapPin, Edit, Camera, Video, ImageIcon, TrendingUp } from "lucide-react"
 import { InfluencerSidebar } from "@/components/influencer-sidebar"
 
-// Mock data untuk influencer profile
+// Mock data untuk influencer profile berdasarkan struktur data real
 const influencerProfile = {
-  name: "Sarah Beauty",
-  username: "@sarahbeauty",
+  name: "Rere Onni",
+  username: "@rereeonni",
+  influencerId: "INF001",
   avatar: "/placeholder.svg?height=80&width=80",
-  followers: 125000,
-  engagement: 4.2,
-  topNiches: ["Beauty", "Skincare", "Lifestyle"],
-  location: "Jakarta, Indonesia",
-  bio: "Beauty enthusiast & skincare expert. Sharing honest reviews and tips for glowing skin ✨",
-  contentTypes: ["Reels", "Feeds", "Stories"],
+  tier: "Nano",
+  followers: 85000,
+  engagement: 3.7,
+  averageViews: 13094,
+  avgPostLike: 2151,
+  avgComment: 389,
+  topNiches: ["Lifestyle"],
+  contentTypes: ["Reels", "Feeds", "Stories"], // Added back for compatibility
+  location: "Semarang, Indonesia",
+  bio: "Lifestyle content creator sharing daily moments and authentic experiences. Love sharing tips tentang hidup sehat dan produktif ✨",
+  rateCards: {
+    story: 300000,
+    feeds: 800000,
+    reels: 1800000
+  },
+  familiarityMedia: 90,
+  trendingStatus: true,
+  likeabilitySentiment: "Positive",
+  campaignSuccess: false,
+  hasRelevantHistory: false,
+  behaviorConsistency: true,
+  randomEndorseRate: 0.35,
   audienceDemographic: {
     ageGroups: [
-      { range: "18-24", percentage: 35 },
-      { range: "25-34", percentage: 45 },
-      { range: "35-44", percentage: 20 },
+      { range: "35-44", percentage: 45 },
+      { range: "13-17", percentage: 31 },
+      { range: "25-34", percentage: 9 },
+      { range: "45-54", percentage: 6 },
+      { range: "55-64", percentage: 5 },
+      { range: "18-24", percentage: 4 }
     ],
-    gender: { female: 78, male: 22 },
-    topLocations: ["Jakarta", "Bandung", "Surabaya", "Medan"],
+    gender: { 
+      female: 81, 
+      male: 18, 
+      unspecified: 1 
+    },
+    topLocations: [
+      { city: "Semarang", percent: 42 },
+      { city: "Bandung", percent: 34 },
+      { city: "Jakarta", percent: 24 }
+    ],
+    topCountries: [
+      { country: "Indonesia", percent: 80 },
+      { country: "Thailand", percent: 14 },
+      { country: "Malaysia", percent: 6 }
+    ]
   },
-  usp: "Authentic product reviews with before/after results. Focus on affordable skincare for Indonesian skin types.",
-  averageViews: 45000,
-  averageLikes: 3200,
-  averageComments: 180,
+  usp: "Authentic lifestyle content dengan engagement tinggi di kalangan dewasa. Fokus pada konten relatable untuk working professionals.",
 }
 
 const recentCampaigns = [
   {
     id: 1,
-    brand: "Wardah",
-    product: "Perfect Bright Serum",
+    brand: "Unilever",
+    product: "Lifebuoy Hand Sanitizer",
     status: "Completed",
-    earnings: "Rp 8,500,000",
-    deliverables: "2 Reels, 1 Feed",
+    earnings: "Rp 2,100,000",
+    deliverables: "1 Reels, 2 Stories",
     date: "Jan 2025",
+    contentType: "Lifestyle Integration"
   },
   {
     id: 2,
-    brand: "Somethinc",
-    product: "Niacinamide Serum",
+    brand: "Shopee",
+    product: "Flash Sale Campaign",
     status: "In Progress",
-    earnings: "Rp 12,000,000",
-    deliverables: "3 Reels, 2 Feeds",
+    earnings: "Rp 1,800,000",
+    deliverables: "3 Reels, 1 Feed",
     date: "Feb 2025",
+    contentType: "Product Showcase"
+  },
+  {
+    id: 3,
+    brand: "Local Brand",
+    product: "Healthy Snack Review",
+    status: "Completed",
+    earnings: "Rp 800,000",
+    deliverables: "1 Feed, 3 Stories",
+    date: "Dec 2024",
+    contentType: "Product Review"
   },
 ]
 
@@ -123,7 +165,7 @@ export default function InfluencerDashboard() {
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">Rp 12M</div>
+                <div className="text-2xl font-bold">Rp 4.7M</div>
                 <p className="text-xs text-muted-foreground">Campaign earnings</p>
               </CardContent>
             </Card>
@@ -305,7 +347,7 @@ export default function InfluencerDashboard() {
 
                     <p className="text-sm mb-4">{profile.bio}</p>
 
-                    <div className="grid grid-cols-3 gap-4 mb-4">
+                    <div className="grid grid-cols-4 gap-4 mb-4">
                       <div className="text-center">
                         <div className="font-semibold">{(profile.followers / 1000).toFixed(0)}K</div>
                         <div className="text-xs text-muted-foreground">Followers</div>
@@ -317,6 +359,10 @@ export default function InfluencerDashboard() {
                       <div className="text-center">
                         <div className="font-semibold">{(profile.averageViews / 1000).toFixed(0)}K</div>
                         <div className="text-xs text-muted-foreground">Avg Views</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="font-semibold">{profile.avgComment}</div>
+                        <div className="text-xs text-muted-foreground">Avg Comments</div>
                       </div>
                     </div>
 
@@ -333,17 +379,20 @@ export default function InfluencerDashboard() {
                       </div>
 
                       <div>
-                        <div className="text-sm font-medium mb-2">Content Types</div>
-                        <div className="flex space-x-2">
-                          {profile.contentTypes.includes("Reels") && (
-                            <Video className="w-4 h-4 text-muted-foreground" />
-                          )}
-                          {profile.contentTypes.includes("Feeds") && (
-                            <ImageIcon className="w-4 h-4 text-muted-foreground" />
-                          )}
-                          {profile.contentTypes.includes("Stories") && (
-                            <Camera className="w-4 h-4 text-muted-foreground" />
-                          )}
+                        <div className="text-sm font-medium mb-2">Rate Cards</div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="text-center bg-muted/50 rounded-lg p-2">
+                            <div className="text-sm font-semibold">Rp {(profile.rateCards.story / 1000).toFixed(0)}K</div>
+                            <div className="text-xs text-muted-foreground">Story</div>
+                          </div>
+                          <div className="text-center bg-muted/50 rounded-lg p-2">
+                            <div className="text-sm font-semibold">Rp {(profile.rateCards.feeds / 1000).toFixed(0)}K</div>
+                            <div className="text-xs text-muted-foreground">Feeds</div>
+                          </div>
+                          <div className="text-center bg-muted/50 rounded-lg p-2">
+                            <div className="text-sm font-semibold">Rp {(profile.rateCards.reels / 1000000).toFixed(1)}M</div>
+                            <div className="text-xs text-muted-foreground">Reels</div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -413,14 +462,17 @@ export default function InfluencerDashboard() {
 
                 <Card className="hover:shadow-lg transition-shadow duration-200">
                   <CardHeader>
-                    <CardTitle>Top Locations</CardTitle>
+                    <CardTitle>Top Cities</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
                       {profile.audienceDemographic.topLocations.map((location, index) => (
-                        <div key={location} className="flex justify-between items-center">
-                          <span className="text-sm">{location}</span>
-                          <Badge variant="outline">#{index + 1}</Badge>
+                        <div key={location.city} className="flex justify-between items-center">
+                          <span className="text-sm">{location.city}</span>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-xs text-muted-foreground">{location.percent}%</span>
+                            <Badge variant="outline">#{index + 1}</Badge>
+                          </div>
                         </div>
                       ))}
                     </div>
