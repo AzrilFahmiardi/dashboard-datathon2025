@@ -793,7 +793,7 @@ export default function BrandDashboard() {
             <FirebaseTest />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <Card className="p-4 hover:shadow-lg transition-shadow duration-200">
               <div className="flex items-start justify-between">
                 <FileText className="h-5 w-5 text-muted-foreground" />
@@ -806,36 +806,6 @@ export default function BrandDashboard() {
                 <div className="text-2xl font-bold">1,247</div>
                 <div className="text-sm font-medium text-foreground">Total Campaigns</div>
                 <div className="text-xs text-muted-foreground">Active campaigns</div>
-              </div>
-            </Card>
-
-            <Card className="p-4 hover:shadow-lg transition-shadow duration-200">
-              <div className="flex items-start justify-between">
-                <Eye className="h-5 w-5 text-muted-foreground" />
-                <div className="flex items-center text-sm text-green-600">
-                  <TrendingUp className="h-3 w-3 mr-1" />
-                  +23.1%
-                </div>
-              </div>
-              <div className="mt-3">
-                <div className="text-2xl font-bold">89.2K</div>
-                <div className="text-sm font-medium text-foreground">Total Reach</div>
-                <div className="text-xs text-muted-foreground">This month</div>
-              </div>
-            </Card>
-
-            <Card className="p-4 hover:shadow-lg transition-shadow duration-200">
-              <div className="flex items-start justify-between">
-                <Heart className="h-5 w-5 text-muted-foreground" />
-                <div className="flex items-center text-sm text-green-600">
-                  <TrendingUp className="h-3 w-3 mr-1" />
-                  +8.2%
-                </div>
-              </div>
-              <div className="mt-3">
-                <div className="text-2xl font-bold">2,847</div>
-                <div className="text-sm font-medium text-foreground">Engagements</div>
-                <div className="text-xs text-muted-foreground">User engagement</div>
               </div>
             </Card>
 
