@@ -66,19 +66,19 @@ export default function LandingPage() {
             </p>
 
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
-              <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer group">
+            <div className="flex flex-col sm:flex-row gap-6 justify-center items-stretch mb-16 max-w-2xl mx-auto">
+              <Card className="flex-1 p-6 hover:shadow-lg transition-all duration-200 cursor-pointer group hover:scale-[1.02]">
                 <CardHeader className="pb-4">
                   <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-3">
                     <Target className="w-6 h-6 text-primary" />
                   </div>
-                  <CardTitle className="text-lg">Saya Brand</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-lg mb-2">Saya Brand</CardTitle>
+                  <CardDescription className="min-h-[60px] flex items-center">
                     Cari influencer yang sesuai dengan target audience dan budget campaign Anda
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <Button className="w-full group-hover:bg-primary/90" asChild>
+                  <Button className="w-full group-hover:bg-primary/90 transition-colors" asChild>
                     <Link href="/login/brand">
                       Login sebagai Brand
                       <ArrowRight className="w-4 h-4 ml-2" />
@@ -87,16 +87,18 @@ export default function LandingPage() {
                 </CardContent>
               </Card>
 
-              <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer group">
+              <Card className="flex-1 p-6 hover:shadow-lg transition-all duration-200 cursor-pointer group hover:scale-[1.02]">
                 <CardHeader className="pb-4">
                   <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-3">
                     <Users className="w-6 h-6 text-primary" />
                   </div>
-                  <CardTitle className="text-lg">Saya Influencer</CardTitle>
-                  <CardDescription>Dapatkan campaign yang sesuai dengan niche dan audience Anda</CardDescription>
+                  <CardTitle className="text-lg mb-2">Saya Influencer</CardTitle>
+                  <CardDescription className="min-h-[60px] flex items-center">
+                    Dapatkan campaign yang sesuai dengan niche dan audience Anda
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <Button className="w-full group-hover:bg-primary/90" asChild>
+                  <Button className="w-full group-hover:bg-primary/90 transition-colors" asChild>
                     <Link href="/login/influencer">
                       Login sebagai Influencer
                       <ArrowRight className="w-4 h-4 ml-2" />

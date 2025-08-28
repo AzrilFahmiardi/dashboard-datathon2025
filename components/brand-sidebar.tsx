@@ -57,33 +57,59 @@ export function BrandSidebar() {
       </div>
 
       {/* User Info */}
-      {user && !loading && (
-        <div className="px-4 mb-4">
-          <div className="bg-sidebar-accent rounded-lg p-3">
-            <div className="flex items-center space-x-3">
-              <Avatar className="w-10 h-10">
-                <AvatarImage src="" />
-                <AvatarFallback className="bg-primary text-primary-foreground">
-                  {profile?.username ? profile.username.charAt(1).toUpperCase() : 'U'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-sidebar-accent-foreground truncate">
+      {loading ? (
+        <div className="px-6 mb-6">
+          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+            <div className="space-y-3">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-gray-200 rounded-full animate-pulse"></div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-end mb-1">
+                    <div className="h-5 bg-gray-200 rounded w-12 animate-pulse"></div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="space-y-1">
+                <div className="h-4 bg-gray-200 rounded w-32 animate-pulse"></div>
+                <div className="h-3 bg-gray-200 rounded w-40 animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : user ? (
+        <div className="px-6 mb-6">
+          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+            <div className="space-y-3">
+              <div className="flex items-center space-x-3">
+                <Avatar className="w-12 h-12 ring-2 ring-primary/20 flex-shrink-0">
+                  <AvatarImage src="" />
+                  <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground font-semibold">
+                    {profile?.username ? profile.username.charAt(1).toUpperCase() : 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-end mb-1">
+                    <Badge variant="default" className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 border-blue-200">
+                      Brand
+                    </Badge>
+                  </div>
+                  
+                </div>
+              </div>
+              
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-gray-900 break-words">
                   {profile?.username || 'User'}
                 </p>
-                <div className="flex items-center space-x-1">
-                  <Badge variant="secondary" className="text-xs">
-                    Brand
-                  </Badge>
-                </div>
-                <p className="text-xs text-sidebar-accent-foreground/70 truncate">
+                <p className="text-xs text-gray-600 break-all leading-relaxed">
                   {userData?.email}
                 </p>
               </div>
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
       <nav className="px-4 pb-4 flex-1">
         <div className="space-y-1">
