@@ -50,7 +50,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-4xl mx-auto">
             <Badge variant="secondary" className="mb-6">
-              🚀 Platform Rekomendasi Influencer Terdepan
+              by Yujiem Rookie Team
             </Badge>
 
             <h1 className="text-4xl lg:text-6xl font-bold text-foreground mb-6 leading-tight">
