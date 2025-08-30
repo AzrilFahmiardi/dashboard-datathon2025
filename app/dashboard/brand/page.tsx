@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -48,11 +49,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { BrandSidebar } from "@/components/brand-sidebar"
 import { CreateCampaignModal } from "@/components/create-campaign-modal"
 import { CampaignResults } from "@/components/campaign-results"
+import { BrandProfileForm } from "@/components/brand-profile-form"
 import { useAuth } from "@/contexts/auth-context"
 import { APIStatusChecker } from "@/components/api-status-checker"
 
 export default function BrandDashboard() {
   const { user } = useAuth() // Get current logged in brand
+  const searchParams = useSearchParams()
+  const [activeTab, setActiveTab] = useState("overview")
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [selectedCampaignDetail, setSelectedCampaignDetail] = useState<string | null>(null)
   const [campaignResults, setCampaignResults] = useState<ApiResponse | null>(null)
@@ -67,6 +71,14 @@ export default function BrandDashboard() {
       loadCampaigns()
     }
   }, [user])
+
+  // Handle URL parameters for tab switching
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    if (tab && ['overview', 'analytics', 'profile'].includes(tab)) {
+      setActiveTab(tab)
+    }
+  }, [searchParams])
 
   const loadCampaigns = async () => {
     if (!user) return
@@ -733,10 +745,11 @@ export default function BrandDashboard() {
           {/* API Status Checker */}
           <APIStatusChecker />
 
-          <Tabs defaultValue="overview" className="space-y-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList>
               <TabsTrigger value="overview">Campaign Overview</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
+              <TabsTrigger value="profile">Brand Profile</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
@@ -1067,6 +1080,10 @@ export default function BrandDashboard() {
                   </CardContent>
                 </Card>
               </div>
+            </TabsContent>
+
+            <TabsContent value="profile" className="space-y-6">
+              <BrandProfileForm />
             </TabsContent>
           </Tabs>
         </div>

@@ -13,23 +13,14 @@ import {
   Timestamp 
 } from 'firebase/firestore'
 
-// Campaign data structure untuk Firebase
-export interface CampaignData {
-  id?: string
+// API data structure - Exact match untuk JSON requirement
+export interface CampaignApiData {
   brief_id: string
-  title: string
-  brand_id: string // Firebase User UID dari brand yang login
   brand_name: string
   industry: string
   product_name: string
   overview: string
   usp: string
-  budget: number
-  total_influencer: number
-  niche: string[]
-  location_prior: string[]
-  esg_allignment: string[]
-  risk_tolerance: string
   marketing_objective: string[]
   target_goals: string[]
   timing_campaign: string
@@ -42,15 +33,55 @@ export interface CampaignData {
     gender: string[]
   }
   influencer_persona: string
+  total_influencer: number
+  niche: string[]
+  location_prior: string[]
+  esg_allignment: string[]
+  budget: number
   output: {
     content_types: string[]
     deliverables: number
   }
-  deliverables: {
-    story: number
-    feeds: number
-    reels: number
+  risk_tolerance: string
+}
+
+// Campaign data structure untuk Firebase - Match dengan JSON API requirement + extra fields
+export interface CampaignData {
+  id?: string
+  brand_id: string // Firebase User UID dari brand yang login
+  
+  // Core API fields matching JSON requirement exactly
+  brief_id: string
+  brand_name: string
+  industry: string
+  product_name: string
+  overview: string
+  usp: string
+  marketing_objective: string[]
+  target_goals: string[]
+  timing_campaign: string
+  audience_preference: {
+    top_locations: {
+      countries: string[]
+      cities: string[]
+    }
+    age_range: string[]
+    gender: string[]
   }
+  influencer_persona: string
+  total_influencer: number
+  niche: string[]
+  location_prior: string[]
+  esg_allignment: string[]
+  budget: number
+  output: {
+    content_types: string[]
+    deliverables: number
+  }
+  risk_tolerance: string
+  
+  // Additional fields for Firebase/UI management only
+  title: string
   status: 'Planning' | 'Upcoming' | 'In Progress' | 'Completed' | 'Cancelled'
   phase: string
   due_date: string
@@ -242,7 +273,24 @@ class FirebaseCampaignService {
   }
 
   // Helper function untuk convert CampaignData ke format yang dibutuhkan modal
-  campaignDataToCampaignBrief(campaign: CampaignData) {
+  campaignDataToCampaignBrief(campaign: CampaignData): CampaignApiData {
+    return this.extractApiData(campaign)
+  }
+
+  // Generate brief ID
+  generateBriefId(): string {
+    return `BRIEF_${Date.now()}_${Math.random().toString(36).substr(2, 9).toUpperCase()}`
+  }
+
+  // Generate title dari product name
+  generateTitle(productName: string, brandName: string): string {
+    return `${productName} Campaign - ${brandName}`
+  }
+
+  // Extract clean API data from CampaignData - Perfect match untuk JSON API requirement
+  // Usage: const apiData = firebaseCampaignService.extractApiData(campaign)
+  // Result: Ready untuk dikirim ke API dengan Indonesia sebagai default country
+  extractApiData(campaign: CampaignData): CampaignApiData {
     return {
       brief_id: campaign.brief_id,
       brand_name: campaign.brand_name,
@@ -257,7 +305,7 @@ class FirebaseCampaignService {
       influencer_persona: campaign.influencer_persona,
       total_influencer: campaign.total_influencer,
       niche: campaign.niche,
-      location_prior: campaign.location_prior,
+      location_prior: campaign.location_prior, // Default: ["Indonesia"]
       esg_allignment: campaign.esg_allignment,
       budget: campaign.budget,
       output: campaign.output,
@@ -265,40 +313,22 @@ class FirebaseCampaignService {
     }
   }
 
-  // Generate brief ID
-  generateBriefId(): string {
-    return `BRIEF_${Date.now()}_${Math.random().toString(36).substr(2, 9).toUpperCase()}`
+  // Get API ready data by campaign ID
+  async getCampaignApiData(campaignId: string): Promise<CampaignApiData> {
+    const campaign = await this.getCampaignById(campaignId)
+    if (!campaign) {
+      throw new Error('Campaign not found')
+    }
+    return this.extractApiData(campaign)
   }
 
-  // Generate title dari product name
-  generateTitle(productName: string, brandName: string): string {
-    return `${productName} Campaign - ${brandName}`
-  }
-
-  // Calculate deliverables breakdown
-  calculateDeliverables(contentTypes: string[], totalDeliverables: number): { story: number, feeds: number, reels: number } {
-    let feeds = 0
-    let reels = 0
-    let story = 0
-
-    if (contentTypes.includes('Feeds')) {
-      feeds = Math.ceil(totalDeliverables * 0.4) // 40% untuk feeds
+  // Get API ready data by brief ID
+  async getCampaignApiDataByBriefId(briefId: string): Promise<CampaignApiData> {
+    const campaign = await this.getCampaignByBriefId(briefId)
+    if (!campaign) {
+      throw new Error('Campaign not found')
     }
-    if (contentTypes.includes('Reels')) {
-      reels = Math.ceil(totalDeliverables * 0.4) // 40% untuk reels
-    }
-    if (contentTypes.includes('Stories')) {
-      story = Math.ceil(totalDeliverables * 0.2) // 20% untuk stories
-    }
-
-    // Adjust jika tidak sesuai total
-    const currentTotal = feeds + reels + story
-    if (currentTotal < totalDeliverables) {
-      const diff = totalDeliverables - currentTotal
-      feeds += diff
-    }
-
-    return { story, feeds, reels }
+    return this.extractApiData(campaign)
   }
 }
 

@@ -133,7 +133,21 @@ export function BrandSidebar() {
           })}
         </div>
 
-        <div className="mt-8 pt-4 border-t border-sidebar-border">
+        <div className="mt-8 pt-4 border-t border-sidebar-border space-y-1">
+          <Button
+            variant={pathname === "/dashboard/brand/profile" ? "secondary" : "ghost"}
+            className={cn(
+              "w-full justify-start",
+              pathname === "/dashboard/brand/profile" && "bg-sidebar-accent text-sidebar-accent-foreground"
+            )}
+            asChild
+          >
+            <Link href="/dashboard/brand/profile">
+              <User className="mr-2 h-4 w-4" />
+              Profile
+            </Link>
+          </Button>
+          
           <Button 
             variant="ghost" 
             className="w-full justify-start text-destructive hover:text-destructive"

@@ -7,7 +7,8 @@ import {
 import { 
   doc, 
   setDoc, 
-  getDoc 
+  getDoc,
+  updateDoc 
 } from 'firebase/firestore'
 import { auth, db } from './firebase'
 
@@ -20,6 +21,12 @@ export interface BaseUser {
 export interface BrandProfile {
   userId: string
   username: string
+  industry?: string
+  companyName?: string
+  website?: string
+  description?: string
+  location?: string
+  logoUrl?: string
 }
 
 export interface InfluencerProfile {
@@ -161,6 +168,30 @@ export const getCurrentUserData = async (user: User) => {
     return { userData, profile }
   } catch (error) {
     console.error('Error getting user data:', error)
+    throw error
+  }
+}
+
+// Update brand profile
+export const updateBrandProfile = async (userId: string, profileData: Partial<BrandProfile>) => {
+  try {
+    const brandRef = doc(db, 'brands', userId)
+    await updateDoc(brandRef, profileData)
+    return true
+  } catch (error) {
+    console.error('Error updating brand profile:', error)
+    throw error
+  }
+}
+
+// Update influencer profile
+export const updateInfluencerProfile = async (userId: string, profileData: Partial<InfluencerProfile>) => {
+  try {
+    const influencerRef = doc(db, 'influencers', userId)
+    await updateDoc(influencerRef, profileData)
+    return true
+  } catch (error) {
+    console.error('Error updating influencer profile:', error)
     throw error
   }
 }
