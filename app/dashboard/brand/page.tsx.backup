@@ -1,0 +1,1384 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import FirebaseTest from "@/components/FirebaseTest"
+import { firebaseCampaignService, type CampaignData } from "@/lib/firebase-campaign"
+import { influencerAPI, type ApiResponse } from "@/lib/influencer-api"
+import { toast } from "react-hot-toast"
+import {
+  Users,
+  DollarSign,
+  MapPin,
+  Heart,
+  Eye,
+  Plus,
+  Filter,
+  Search,
+  FileText,
+  Calendar,
+  TrendingUp,
+  TrendingDown,
+  ArrowLeft,
+  Target,
+  Brain,
+  Sparkles,
+  MessageCircle,
+  BarChart3,
+  Zap,
+  Crown,
+  Star,
+  RefreshCw,
+  Megaphone,
+  PieChart,
+  CheckCircle,
+  Send,
+  Activity,
+  Video,
+  Loader2,
+} from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { BrandSidebar } from "@/components/brand-sidebar"
+import { CreateCampaignModal } from "@/components/create-campaign-modal"
+import { CampaignResults } from "@/components/campaign-results"
+import { APIStatusChecker } from "@/components/api-status-checker"
+
+export default function BrandDashboard() {
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [selectedCampaignDetail, setSelectedCampaignDetail] = useState<string | null>(null)
+  const [campaignResults, setCampaignResults] = useState<ApiResponse | null>(null)
+  const [showResults, setShowResults] = useState(false)
+  const [campaigns, setCampaigns] = useState<CampaignData[]>([])
+  const [isLoadingCampaigns, setIsLoadingCampaigns] = useState(true)
+  const [isGeneratingRecommendations, setIsGeneratingRecommendations] = useState(false)
+
+  // Load campaigns from Firebase on component mount
+  useEffect(() => {
+    loadCampaigns()
+  }, [])
+
+  const loadCampaigns = async () => {
+    try {
+      setIsLoadingCampaigns(true)
+      const fetchedCampaigns = await firebaseCampaignService.getAllCampaigns()
+      setCampaigns(fetchedCampaigns)
+    } catch (error) {
+      console.error('Error loading campaigns:', error)
+      toast.error('Failed to load campaigns')
+    } finally {
+      setIsLoadingCampaigns(false)
+    }
+  }
+
+  // Handler untuk menerima campaign baru dari modal
+  const handleCampaignCreated = async (campaign: CampaignData) => {
+    // Add new campaign to state
+    setCampaigns(prev => [campaign, ...prev])
+    toast.success('Campaign berhasil dibuat!')
+  }
+
+  // Handler untuk generate recommendations
+  const handleGenerateRecommendations = async (campaign: CampaignData) => {
+    setIsGeneratingRecommendations(true)
+    try {
+      // Convert campaign data to campaign brief format
+      const campaignBrief = firebaseCampaignService.campaignDataToCampaignBrief(campaign)
+      
+      // Call API to get recommendations
+      const response = await influencerAPI.recommendInfluencers(campaignBrief, {
+        adaptive_weights: true,
+        include_insights: true
+      })
+
+      if (response.status === 'success') {
+        // Save recommendations to Firebase
+        await firebaseCampaignService.saveRecommendations(campaign.brief_id, response)
+        
+        // Update campaigns state
+        setCampaigns(prev => prev.map(c => 
+          c.brief_id === campaign.brief_id 
+            ? { ...c, has_recommendations: true, recommendation_data: response }
+            : c
+        ))
+        
+        toast.success('Rekomendasi influencer berhasil dibuat!')
+        setSelectedCampaignDetail(campaign.brief_id)
+      }
+    } catch (error: any) {
+      console.error('Error generating recommendations:', error)
+      toast.error(error.message || 'Gagal membuat rekomendasi')
+    } finally {
+      setIsGeneratingRecommendations(false)
+    }
+  }
+
+  // Handler untuk kembali ke dashboard dari results
+  const handleBackFromResults = () => {
+    setShowResults(false)
+    setCampaignResults(null)
+  }
+
+  // Handler untuk membuka detail campaign
+  const openCampaignDetail = (briefId: string) => {
+    setSelectedCampaignDetail(briefId)
+  }
+
+  // Handler untuk kembali ke dashboard
+  const closeCampaignDetail = () => {
+    setSelectedCampaignDetail(null)
+  }
+
+  // Render results page
+  if (showResults && campaignResults) {
+    return (
+      <div className="flex h-screen bg-background">
+        <BrandSidebar />
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-6">
+            <CampaignResults 
+              data={campaignResults} 
+              onBack={handleBackFromResults}
+            />
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  // Render detail campaign dengan AI recommendations
+  if (selectedCampaignDetail) {
+    const campaignDetail = campaigns.find(c => c.brief_id === selectedCampaignDetail)
+    
+    if (!campaignDetail) {
+      return (
+        <div className="flex h-screen bg-background">
+          <BrandSidebar />
+          <main className="flex-1 overflow-y-auto">
+            <div className="p-6">
+              <Button 
+                variant="ghost" 
+                onClick={closeCampaignDetail}
+                className="mb-4 hover:bg-muted transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Dashboard
+              </Button>
+              <p>Campaign not found.</p>
+            </div>
+          </main>
+        </div>
+      )
+    }
+
+    // If campaign doesn't have recommendations yet, show generate button
+    if (!campaignDetail.has_recommendations) {
+      return (
+        <div className="flex h-screen bg-background">
+          <BrandSidebar />
+          <main className="flex-1 overflow-y-auto">
+            <div className="p-6">
+              <Button 
+                variant="ghost" 
+                onClick={closeCampaignDetail}
+                className="mb-4 hover:bg-muted transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Dashboard
+              </Button>
+              
+              <div className="space-y-6">
+                <div>
+                  <h1 className="text-3xl font-bold text-foreground">
+                    {campaignDetail.title}
+                  </h1>
+                  <p className="text-muted-foreground">{campaignDetail.product_name}</p>
+                </div>
+
+                {/* Campaign Details Card */}
+                <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span>Campaign Details</span>
+                      <Badge variant="secondary">{campaignDetail.brief_id}</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Brand</Label>
+                        <p className="font-semibold">{campaignDetail.brand_name}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Industry</Label>
+                        <p className="font-semibold">{campaignDetail.industry}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Budget</Label>
+                        <p className="font-semibold">Rp {campaignDetail.budget.toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Target Influencers</Label>
+                        <p className="font-semibold">{campaignDetail.total_influencer} influencers</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                        <Badge variant="outline">{campaignDetail.status}</Badge>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Due Date</Label>
+                        <p className="font-semibold">{campaignDetail.due_date}</p>
+                      </div>
+                    </div>
+                    
+                    {campaignDetail.overview && (
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Overview</Label>
+                        <p className="text-sm">{campaignDetail.overview}</p>
+                      </div>
+                    )}
+                    
+                    <div className="flex flex-wrap gap-2">
+                      <Label className="text-sm font-medium text-muted-foreground">Niches:</Label>
+                      {campaignDetail.niche.map((niche) => (
+                        <Badge key={niche} variant="secondary">{niche}</Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Generate Recommendations Button */}
+                <Card>
+                  <CardContent className="p-6 text-center">
+                    <div className="space-y-4">
+                      <div>
+                        <Brain className="w-12 h-12 mx-auto text-primary/60 mb-4" />
+                        <h3 className="text-lg font-semibold">Generate Influencer Recommendations</h3>
+                        <p className="text-muted-foreground">
+                          Dapatkan rekomendasi influencer terbaik menggunakan AI untuk campaign ini
+                        </p>
+                      </div>
+                      <Button 
+                        onClick={() => handleGenerateRecommendations(campaignDetail)}
+                        disabled={isGeneratingRecommendations}
+                        size="lg"
+                        className="w-full max-w-md"
+                      >
+                        {isGeneratingRecommendations ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Generating Recommendations...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4 mr-2" />
+                            Generate AI Recommendations
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </main>
+        </div>
+      )
+    }
+
+    // Show recommendations if available
+    const aiData = campaignDetail.recommendation_data
+    if (!aiData) {
+      return (
+        <div className="flex h-screen bg-background">
+          <BrandSidebar />
+          <main className="flex-1 overflow-y-auto">
+            <div className="p-6">
+              <Button 
+                variant="ghost" 
+                onClick={closeCampaignDetail}
+                className="mb-4 hover:bg-muted transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Dashboard
+              </Button>
+              <p>Recommendation data not available.</p>
+            </div>
+          </main>
+        </div>
+      )
+    }
+
+    return (
+      <div className="flex h-screen bg-background">
+        <BrandSidebar />
+        
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-6">
+            {/* Header sederhana */}
+            <div className="mb-6">
+              <Button 
+                variant="ghost" 
+                onClick={closeCampaignDetail}
+                className="mb-4 text-sm text-muted-foreground hover:text-foreground"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Dashboard
+              </Button>
+              <h1 className="text-2xl font-bold text-foreground">
+                Influencer Recommendations
+              </h1>
+            </div>
+
+            {/* Campaign Brief Card */}
+            <div className="mb-6">
+              <Card className="bg-blue-50 border-blue-100">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Badge variant="secondary" className="mb-2 text-xs">
+                        {campaignDetail.brief_id}
+                      </Badge>
+                      <h2 className="text-xl font-bold text-foreground">
+                        {campaignDetail.product_name}
+                      </h2>
+                      <p className="text-sm text-muted-foreground flex items-center mt-1">
+                        <Sparkles className="w-4 h-4 mr-1" />
+                        {campaignDetail.industry}
+                      </p>
+                    </div>
+                    <Badge variant="default" className="bg-blue-600">
+                      {campaignDetail.status}
+                    </Badge>
+                  </div>
+                </CardHeader>
+              </Card>
+            </div>
+
+            {/* 4 Info Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              {/* Campaign Info */}
+              <Card className="bg-white border">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center">
+                    <FileText className="w-4 h-4 mr-2 text-blue-600" />
+                    Campaign Info
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center p-2 bg-blue-50 rounded">
+                    <div className="text-lg font-bold text-blue-600">
+                      Rp {(campaignDetail.budget / 1000000).toFixed(0)}M
+                    </div>
+                    <div className="text-xs text-muted-foreground">Total Budget</div>
+                  </div>
+                  <div className="text-center p-2 bg-gray-50 rounded mt-2">
+                    <div className="text-sm font-semibold">{campaignDetail.output?.deliverables || 6}</div>
+                    <div className="text-xs text-muted-foreground">Total Deliverables</div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Target Audience */}
+              <Card className="bg-white border">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center">
+                    <Users className="w-4 h-4 mr-2 text-blue-600" />
+                    Target Audience
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="text-xs">
+                      <MapPin className="w-3 h-3 inline mr-1" />
+                      Countries:
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {campaignDetail.audience_preference?.top_locations?.countries?.map((country: string) => (
+                        <Badge key={country} variant="outline" className="text-xs">{country}</Badge>
+                      )) || <Badge variant="outline" className="text-xs">Indonesia</Badge>}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {campaignDetail.audience_preference?.age_range?.join(", ") || "18-24, 25-34"} • {campaignDetail.audience_preference?.gender?.join(", ") || "Female"}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Content Requirements */}
+              <Card className="bg-white border">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center">
+                    <Video className="w-4 h-4 mr-2 text-blue-600" />
+                    Content Requirements
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-xs mb-2">Types: {campaignDetail.output?.content_types?.join(", ") || "Reels, Feeds"}</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="text-center p-2 bg-gray-50 rounded">
+                      <div className="text-sm font-bold">{campaignDetail.deliverables?.feeds || 3}</div>
+                      <div className="text-xs text-muted-foreground">Feeds</div>
+                    </div>
+                    <div className="text-center p-2 bg-gray-50 rounded">
+                      <div className="text-sm font-bold">{campaignDetail.deliverables?.reels || 3}</div>
+                      <div className="text-xs text-muted-foreground">Reels</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Influencer Persona */}
+              <Card className="bg-white border">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center">
+                    <Star className="w-4 h-4 mr-2 text-blue-600" />
+                    Influencer Persona
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {campaignDetail.influencer_persona || "Beauty enthusiast, skincare expert, authentic product reviewer dengan focus pada natural skincare dan anti-aging..."}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Top Recommendations */}
+            <div className="space-y-4">
+              <h2 className="text-lg font-bold">
+                Top {aiData.recommendations?.length || 2} Influencer Recommendations
+              </h2>
+              
+              {aiData.recommendations?.slice(0, 2).map((rec: any, index: number) => (
+                <Card key={rec.username || index} className="bg-white border">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <Avatar className="w-12 h-12">
+                          <AvatarImage src="/placeholder.svg" />
+                          <AvatarFallback>{rec.username?.substring(1, 3).toUpperCase() || 'IN'}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <h3 className="font-semibold flex items-center">
+                            {index === 0 && <Crown className="w-4 h-4 mr-1 text-blue-600" />}
+                            {rec.username || `@jenniferbachdim`} ({rec.tier || "Mega Influencer"})
+                          </h3>
+                          <p className="text-sm text-muted-foreground">{rec.expertise || "Jennifer Bachdim"}</p>
+                        </div>
+                      </div>
+                      <Badge variant="secondary" className="bg-black text-white">
+                        Overall Match: {(rec.scores?.final_score * 100)?.toFixed(1) || "49.1"}%
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <Tabs defaultValue="conversion" className="w-full">
+                      <TabsList className="grid w-full grid-cols-4">
+                        <TabsTrigger value="conversion" className="text-xs">
+                          <RefreshCw className="w-3 h-3 mr-1" />
+                          Conversion Potential
+                        </TabsTrigger>
+                        <TabsTrigger value="behavior" className="text-xs">
+                          <Megaphone className="w-3 h-3 mr-1" />
+                          Caption Behavior
+                        </TabsTrigger>
+                        <TabsTrigger value="performance" className="text-xs">
+                          <BarChart3 className="w-3 h-3 mr-1" />
+                          Performance
+                        </TabsTrigger>
+                        <TabsTrigger value="strategy" className="text-xs">
+                          <DollarSign className="w-3 h-3 mr-1" />
+                          Campaign Strategy
+                        </TabsTrigger>
+                      </TabsList>
+                      
+                      <TabsContent value="conversion" className="mt-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <h4 className="text-sm font-semibold mb-2 flex items-center">
+                              <MessageCircle className="w-4 h-4 mr-1" />
+                              Comment Quality Analysis
+                            </h4>
+                            <div className="text-xs text-muted-foreground space-y-1">
+                              <p>Analyzed Data: Based on engagement patterns</p>
+                              <p>Authenticity Score: {rec.performance_metrics?.authenticity_score?.toFixed(1) || '87.3'}%</p>
+                              <p>High engagement indicates authentic audience interaction</p>
+                            </div>
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-semibold mb-2">Sample High-Value Comments</h4>
+                            <div className="text-xs text-muted-foreground">
+                              <p>"Wah bener-bener bagus nih produknya!"</p>
+                              <p>"Udah pake dan cocok banget di kulit"</p>
+                            </div>
+                          </div>
+                        </div>
+                      </TabsContent>
+                      
+                      <TabsContent value="behavior" className="mt-4">
+                        <div className="text-sm">
+                          <p>Content behavior analysis and strategy details...</p>
+                        </div>
+                      </TabsContent>
+                      
+                      <TabsContent value="performance" className="mt-4">
+                        <div className="text-sm">
+                          <p>Performance metrics and analytics...</p>
+                        </div>
+                      </TabsContent>
+                      
+                      <TabsContent value="strategy" className="mt-4">
+                        <div className="text-sm">
+                          <p>Campaign strategy recommendations...</p>
+                        </div>
+                      </TabsContent>
+                    </Tabs>
+                  </CardContent>
+                </Card>
+              )) || (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No recommendations available.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  return (
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="text-sm font-medium">Types: {campaignDetail.output.content_types.join(", ")}</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="text-center p-2 bg-muted rounded">
+                        <div className="text-lg font-bold text-foreground">{campaignDetail.deliverables.feeds}</div>
+                        <div className="text-xs text-muted-foreground">Feeds</div>
+                      </div>
+                      <div className="text-center p-2 bg-muted rounded">
+                        <div className="text-lg font-bold text-foreground">{campaignDetail.deliverables.reels}</div>
+                        <div className="text-xs text-muted-foreground">Reels</div>
+                      </div>
+                    </div>
+                    {campaignDetail.deliverables.story > 0 && (
+                      <div className="text-center p-2 bg-muted rounded">
+                        <div className="text-lg font-bold text-foreground">{campaignDetail.deliverables.story}</div>
+                        <div className="text-xs text-muted-foreground">Stories</div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Influencer Persona Card */}
+                <Card className="bg-white border">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center">
+                      <Star className="w-4 h-4 mr-2 text-primary" />
+                      Influencer Persona
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {campaignDetail.influencer_persona}
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
+            {/* Scoring Strategy */}
+            <Card className="bg-white border mb-6">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <BarChart3 className="w-5 h-5 mr-2 text-primary" />
+                  Scoring Strategy Applied
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center p-3 bg-muted border rounded-lg">
+                    <div className="text-2xl font-bold text-foreground">{aiData.metadata?.scoring_strategy?.persona_fit || 34.4}%</div>
+                    <div className="text-xs text-muted-foreground">Persona Fit</div>
+                  </div>
+                  <div className="text-center p-3 bg-muted border rounded-lg">
+                    <div className="text-2xl font-bold text-foreground">{aiData.metadata?.scoring_strategy?.audience_fit || 34.4}%</div>
+                    <div className="text-xs text-muted-foreground">Audience Fit</div>
+                  </div>
+                  <div className="text-center p-3 bg-muted border rounded-lg">
+                    <div className="text-2xl font-bold text-foreground">{aiData.metadata?.scoring_strategy?.performance_pred || 15.6}%</div>
+                    <div className="text-xs text-muted-foreground">Performance Pred</div>
+                  </div>
+                  <div className="text-center p-3 bg-muted border rounded-lg">
+                    <div className="text-2xl font-bold text-foreground">{aiData.metadata?.scoring_strategy?.budget_efficiency || 15.6}%</div>
+                    <div className="text-xs text-muted-foreground">Budget Efficiency</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Top Recommendations */}
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold flex items-center">
+                Top {aiData.recommendations?.length || 0} Influencer Recommendations
+              </h2>
+              
+              {aiData.recommendations?.map((rec: any, index: number) => (
+                <Card key={rec.username || index} className="bg-white border">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center space-x-4">
+                        <Avatar className="w-16 h-16">
+                          <AvatarImage src="/placeholder.svg" />
+                          <AvatarFallback>{rec.username?.substring(1, 3).toUpperCase() || 'IN'}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <CardTitle className="flex items-center">
+                            {index === 0 && <Crown className="w-5 h-5 mr-2 text-primary" />}
+                            {index > 0 && <Star className="w-5 h-5 mr-2 text-muted-foreground" />}
+                            {rec.username} ({rec.tier})
+                          </CardTitle>
+                          <CardDescription>Expert: {rec.expertise || 'Rank #' + rec.rank}</CardDescription>
+                          <div className="flex items-center space-x-2 mt-2">
+                            <Badge variant="secondary" className="text-lg font-bold">
+                              Overall Score: {rec.scores?.final_score?.toFixed(1) || 'N/A'}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <Tabs defaultValue="conversion" className="space-y-4">
+                      <TabsList>
+                        <TabsTrigger value="conversion">
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          Conversion Potential
+                        </TabsTrigger>
+                        <TabsTrigger value="behavior">
+                          <Megaphone className="w-4 h-4 mr-2" />
+                          Caption Behavior
+                        </TabsTrigger>
+                        <TabsTrigger value="performance">
+                          <BarChart3 className="w-4 h-4 mr-2" />
+                          Performance
+                        </TabsTrigger>
+                        <TabsTrigger value="strategy">
+                          <DollarSign className="w-4 h-4 mr-2" />
+                          Campaign Strategy
+                        </TabsTrigger>
+                      </TabsList>
+                      
+                      <TabsContent value="conversion" className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <h4 className="font-semibold mb-3 flex items-center">
+                              <MessageCircle className="w-4 h-4 mr-2" />
+                              Comment Quality Analysis
+                            </h4>
+                            <div className="space-y-2">
+                              <p className="text-sm"><span className="font-medium">Analyzed Data:</span> Based on engagement patterns</p>
+                              <p className="text-sm"><span className="font-medium">Authenticity Score:</span> {rec.performance_metrics?.authenticity_score?.toFixed(1) || 'N/A'}%</p>
+                              <p className="text-xs text-muted-foreground">High engagement indicates authentic audience interaction</p>
+                            </div>
+                            
+                            <div className="mt-4 space-y-2">
+                              <div className="flex justify-between items-center">
+                                <span className="text-xs capitalize">Engagement Quality</span>
+                                <div className="flex items-center space-x-2">
+                                  <div className="w-20 bg-muted rounded-full h-1.5">
+                                    <div 
+                                      className="bg-primary h-1.5 rounded-full" 
+                                      style={{ width: `${rec.performance_metrics?.engagement_rate * 10 || 30}%` }}
+                                    ></div>
+                                  </div>
+                                  <span className="text-xs w-8 text-right text-foreground">{rec.performance_metrics?.engagement_rate?.toFixed(1) || 'N/A'}%</span>
+                                </div>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-xs capitalize">Reach Potential</span>
+                                <div className="flex items-center space-x-2">
+                                  <div className="w-20 bg-muted rounded-full h-1.5">
+                                    <div 
+                                      className="bg-primary h-1.5 rounded-full" 
+                                      style={{ width: `${rec.performance_metrics?.reach_potential || 50}%` }}
+                                    ></div>
+                                  </div>
+                                  <span className="text-xs w-8 text-right text-foreground">{rec.performance_metrics?.reach_potential?.toFixed(1) || 'N/A'}%</span>
+                                </div>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-xs capitalize">Brand Alignment</span>
+                                <div className="flex items-center space-x-2">
+                                  <div className="w-20 bg-muted rounded-full h-1.5">
+                                    <div 
+                                      className="bg-primary h-1.5 rounded-full" 
+                                      style={{ width: `${rec.performance_metrics?.brand_fit || 60}%` }}
+                                    ></div>
+                                  </div>
+                                  <span className="text-xs w-8 text-right text-foreground">{rec.performance_metrics?.brand_fit?.toFixed(1) || 'N/A'}%</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <h4 className="font-semibold mb-3">💡 AI Insights</h4>
+                            <div className="space-y-3">
+                              {rec.insights ? (
+                                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                  <p className="text-sm text-blue-700">{rec.insights}</p>
+                                </div>
+                              ) : (
+                                <div className="p-3 bg-gray-50 border rounded-lg">
+                                  <div className="font-medium text-xs capitalize mb-1 text-primary">Performance Insights</div>
+                                  <p className="text-xs text-gray-700 italic">"Strong engagement rate indicates authentic audience connection"</p>
+                                </div>
+                              )}
+                              
+                              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                                <div className="font-medium text-xs capitalize mb-1 text-green-600">Recommendation</div>
+                                <p className="text-xs text-green-700 italic">"Ideal for {campaignDetail.niche.join(', ')} campaigns with high authenticity requirements"</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </TabsContent>
+                      
+                      <TabsContent value="behavior" className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <h4 className="font-semibold mb-3 flex items-center">
+                              <RefreshCw className="w-4 h-4 mr-2" />
+                              Content Behavior Analysis
+                            </h4>
+                            <p className="text-sm">Engagement Style: Professional and authentic</p>
+                            
+                            <h4 className="font-semibold mb-3 mt-6 flex items-center">
+                              <Megaphone className="w-4 h-4 mr-2" />
+                              Content Strategy
+                            </h4>
+                            <p className="text-sm"><span className="font-medium">Primary Focus:</span> {rec.expertise || 'Content creation'}</p>
+                            <div className="mt-2 p-3 bg-gray-50 border rounded-lg">
+                              <p className="text-xs text-gray-700 italic">Consistent posting schedule with high-quality content that resonates with target audience</p>
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <h4 className="font-semibold mb-3 flex items-center">
+                              <PieChart className="w-4 h-4 mr-2" />
+                              Content Distribution
+                            </h4>
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm capitalize">Feed Posts</span>
+                                <Badge variant="outline">{rec.optimal_content_mix?.feeds_count || 3}</Badge>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm capitalize">Reels</span>
+                                <Badge variant="outline">{rec.optimal_content_mix?.reels_count || 3}</Badge>
+                              </div>
+                              {(rec.optimal_content_mix?.story_count || 0) > 0 && (
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm capitalize">Stories</span>
+                                  <Badge variant="outline">{rec.optimal_content_mix.story_count}</Badge>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </TabsContent>
+                      
+                      <TabsContent value="performance" className="space-y-4">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                          <div className="text-center p-3 bg-muted border rounded-lg">
+                            <div className="text-xl font-bold text-foreground">{rec.scores?.budget_efficiency?.toFixed(2) || 'N/A'}</div>
+                            <div className="text-xs text-muted-foreground">Budget Efficiency</div>
+                            <div className="text-xs text-muted-foreground">points/Million Rp</div>
+                          </div>
+                          <div className="text-center p-3 bg-muted border rounded-lg">
+                            <div className="text-xl font-bold text-foreground">{rec.scores?.persona_fit?.toFixed(1) || 'N/A'}%</div>
+                            <div className="text-xs text-muted-foreground">Persona Fit</div>
+                          </div>
+                          <div className="text-center p-3 bg-muted border rounded-lg">
+                            <div className="text-xl font-bold text-foreground">{rec.scores?.audience_fit?.toFixed(1) || 'N/A'}%</div>
+                            <div className="text-xs text-muted-foreground">Audience Match</div>
+                          </div>
+                          <div className="text-center p-3 bg-muted border rounded-lg">
+                            <div className="text-xl font-bold text-foreground">{rec.scores?.performance_pred?.toFixed(1) || 'N/A'}%</div>
+                            <div className="text-xs text-muted-foreground">Performance Potential</div>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div className="text-center p-3 bg-gray-50 border rounded-lg">
+                            <div className="text-lg font-bold">{rec.performance_metrics?.engagement_rate?.toFixed(2) || 'N/A'}%</div>
+                            <div className="text-xs text-muted-foreground">Engagement Rate</div>
+                          </div>
+                          <div className="text-center p-3 bg-gray-50 border rounded-lg">
+                            <div className="text-lg font-bold">{rec.performance_metrics?.authenticity_score?.toFixed(1) || 'N/A'}%</div>
+                            <div className="text-xs text-muted-foreground">Authenticity Score</div>
+                          </div>
+                          <div className="text-center p-3 bg-gray-50 border rounded-lg">
+                            <div className="text-lg font-bold">{rec.performance_metrics?.reach_potential?.toFixed(1) || 'N/A'}%</div>
+                            <div className="text-xs text-muted-foreground">Reach Potential</div>
+                          </div>
+                          <div className="text-center p-3 bg-gray-50 border rounded-lg">
+                            <div className="text-lg font-bold">{rec.performance_metrics?.brand_fit?.toFixed(1) || 'N/A'}%</div>
+                            <div className="text-xs text-muted-foreground">Brand Alignment</div>
+                          </div>
+                        </div>
+                      </TabsContent>
+                      
+                      <TabsContent value="strategy" className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <h4 className="font-semibold mb-3 flex items-center">
+                              <FileText className="w-4 h-4 mr-2" />
+                              Content Requirements
+                            </h4>
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-center p-2 bg-muted border rounded">
+                                <span className="text-sm">Feed Posts</span>
+                                <Badge>{rec.optimal_content_mix?.feeds_count || 3} posts</Badge>
+                              </div>
+                              <div className="flex justify-between items-center p-2 bg-muted border rounded">
+                                <span className="text-sm">Reels</span>
+                                <Badge>{rec.optimal_content_mix?.reels_count || 3} posts</Badge>
+                              </div>
+                              {(rec.optimal_content_mix?.story_count || 0) > 0 && (
+                                <div className="flex justify-between items-center p-2 bg-muted border rounded">
+                                  <span className="text-sm">Stories</span>
+                                  <Badge>{rec.optimal_content_mix.story_count} posts</Badge>
+                                </div>
+                              )}
+                            </div>
+                            
+                            <h4 className="font-semibold mb-3 mt-6 flex items-center">
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              Key Insights
+                            </h4>
+                            <div className="space-y-1">
+                              <p className="text-sm">🔥 High engagement potential</p>
+                              <p className="text-sm">✅ Consistent content behavior</p>
+                              <p className="text-sm">🎯 Strong audience alignment</p>
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <h4 className="font-semibold mb-3 flex items-center">
+                              <DollarSign className="w-4 h-4 mr-2" />
+                              Financial Summary
+                            </h4>
+                            <div className="space-y-3">
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm">Total Cost</span>
+                                <span className="font-bold text-foreground">Rp {rec.optimal_content_mix?.total_cost?.toLocaleString() || '15,000,000'}</span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm">Expected Impact</span>
+                                <span className="font-bold text-foreground">{rec.optimal_content_mix?.total_impact?.toFixed(1) || rec.scores?.final_score?.toFixed(1) || '85.5'} points</span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm">Budget Remaining</span>
+                                <span className="font-bold text-foreground">
+                                  Rp {rec.optimal_content_mix?.remaining_budget?.toLocaleString() || (campaignDetail.budget - 15000000).toLocaleString()}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <Button className="w-full mt-6" size="lg">
+                              <Zap className="w-4 h-4 mr-2" />
+                              Select This Influencer
+                            </Button>
+                          </div>
+                        </div>
+                      </TabsContent>
+                    </Tabs>
+                  </CardContent>
+                </Card>
+              )) || (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No recommendations available.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer dengan informasi AI */}
+            <Card className="bg-muted border mt-8">
+              <CardContent className="p-6">
+                <div className="text-center">
+                  <h3 className="font-bold text-lg mb-2 flex items-center justify-center">
+                    <CheckCircle className="w-5 h-5 mr-2 text-primary" />
+                    RECOMMENDATION COMPLETE
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                    <div className="flex items-center justify-center">
+                      <Brain className="w-4 h-4 mr-2 text-muted-foreground" />
+                      Enhanced with Adaptive Weight Intelligence
+                    </div>
+                    <div className="flex items-center justify-center">
+                      <Eye className="w-4 h-4 mr-2 text-muted-foreground" />
+                      Using Real Instagram Insights
+                    </div>
+                    <div className="flex items-center justify-center">
+                      <BarChart3 className="w-4 h-4 mr-2 text-muted-foreground" />
+                      Multi-Component Analysis
+                    </div>
+                    <div className="flex items-center justify-center">
+                      <Activity className="w-4 h-4 mr-2 text-muted-foreground" />
+                      Visual Analytics for Each Influencer
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex h-screen bg-background">
+      <BrandSidebar />
+
+      <main className="flex-1 overflow-y-auto">
+        <div className="p-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Dashboard Brand</h1>
+              <p className="text-muted-foreground">Kelola campaign dan temukan influencer terbaik</p>
+            </div>
+            <Button onClick={() => setIsCreateModalOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Buat Campaign Baru
+            </Button>
+          </div>
+
+          {/* Firebase Test - temporary */}
+          <div className="mb-6">
+            <FirebaseTest />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <Card className="p-4 hover:shadow-lg transition-shadow duration-200">
+              <div className="flex items-start justify-between">
+                <FileText className="h-5 w-5 text-muted-foreground" />
+                <div className="flex items-center text-sm text-green-600">
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                  +12.5%
+                </div>
+              </div>
+              <div className="mt-3">
+                <div className="text-2xl font-bold">1,247</div>
+                <div className="text-sm font-medium text-foreground">Total Campaigns</div>
+                <div className="text-xs text-muted-foreground">Active campaigns</div>
+              </div>
+            </Card>
+
+            <Card className="p-4 hover:shadow-lg transition-shadow duration-200">
+              <div className="flex items-start justify-between">
+                <Users className="h-5 w-5 text-muted-foreground" />
+                <div className="flex items-center text-sm text-red-600">
+                  <TrendingDown className="h-3 w-3 mr-1" />
+                  -2.1%
+                </div>
+              </div>
+              <div className="mt-3">
+                <div className="text-2xl font-bold">24</div>
+                <div className="text-sm font-medium text-foreground">Active Influencers</div>
+                <div className="text-xs text-muted-foreground">Collaborating now</div>
+              </div>
+            </Card>
+
+            <Card className="p-4 hover:shadow-lg transition-shadow duration-200">
+              <div className="flex items-start justify-between">
+                <Calendar className="h-5 w-5 text-muted-foreground" />
+                <div className="flex items-center text-sm text-green-600">
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                  +5.3%
+                </div>
+              </div>
+              <div className="mt-3">
+                <div className="text-2xl font-bold">18</div>
+                <div className="text-sm font-medium text-foreground">Scheduled Posts</div>
+                <div className="text-xs text-muted-foreground">Upcoming content</div>
+              </div>
+            </Card>
+
+            <Card className="p-4 hover:shadow-lg transition-shadow duration-200">
+              <div className="flex items-start justify-between">
+                <DollarSign className="h-5 w-5 text-muted-foreground" />
+                <div className="flex items-center text-sm text-green-600">
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                  +15.7%
+                </div>
+              </div>
+              <div className="mt-3">
+                <div className="text-2xl font-bold">3,456</div>
+                <div className="text-sm font-medium text-foreground">Budget Used</div>
+                <div className="text-xs text-muted-foreground">In thousands</div>
+              </div>
+            </Card>
+          </div>
+
+          {/* API Status Checker */}
+          <APIStatusChecker />
+
+          <Tabs defaultValue="overview" className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="overview">Campaign Overview</TabsTrigger>
+              <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="overview" className="space-y-6">
+              {/* Top Row: Upcoming Campaigns Schedule & AI Dashboard Insights */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card className="bg-white border hover:shadow-lg transition-shadow duration-200">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Calendar className="w-5 h-5 mr-2" />
+                      Upcoming Campaigns Schedule
+                    </CardTitle>
+                    <CardDescription>Campaign yang akan datang dan deadline penting</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {isLoadingCampaigns ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 className="w-6 h-6 animate-spin mr-2" />
+                          <span className="text-muted-foreground">Loading campaigns...</span>
+                        </div>
+                      ) : campaigns.length === 0 ? (
+                        <div className="text-center py-8">
+                          <p className="text-muted-foreground">Belum ada campaign yang dibuat</p>
+                          <Button 
+                            variant="outline" 
+                            onClick={() => setIsCreateModalOpen(true)}
+                            className="mt-2"
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Buat Campaign Pertama
+                          </Button>
+                        </div>
+                      ) : (
+                        campaigns.slice(0, 5).map((campaign) => (
+                          <div 
+                            key={campaign.id}
+                            onClick={() => openCampaignDetail(campaign.brief_id)}
+                            className="flex items-center justify-between p-3 bg-muted border rounded-lg cursor-pointer hover:shadow-md hover:bg-muted/80 transition-all duration-200"
+                          >
+                            <div className="flex items-center space-x-3">
+                              <div className="w-2 h-2 bg-primary rounded-full"></div>
+                              <div>
+                                <h4 className="font-semibold text-sm flex items-center">
+                                  {campaign.title}
+                                  {campaign.has_recommendations && (
+                                    <Brain className="w-3 h-3 ml-1 text-primary" />
+                                  )}
+                                </h4>
+                                <p className="text-xs text-muted-foreground">{campaign.phase}</p>
+                                <p className="text-xs text-muted-foreground">Due: {campaign.due_date}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Badge variant={campaign.status === 'In Progress' ? 'default' : 'outline'} className="text-xs">
+                                {campaign.status}
+                              </Badge>
+                              {campaign.has_recommendations && (
+                                <Badge variant="secondary" className="text-xs">
+                                  AI Ready
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    {campaigns.length > 0 && (
+                      <div className="mt-3 p-2 bg-muted border rounded-lg">
+                        <div className="flex items-center text-xs">
+                          <Brain className="w-3 h-3 mr-1 text-primary" />
+                          <span className="text-muted-foreground">Click campaigns with AI Ready badge for recommendations</span>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white border hover:shadow-lg transition-shadow duration-200">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Brain className="w-5 h-5 mr-2" />
+                      AI Dashboard Insights
+                    </CardTitle>
+                    <CardDescription>Tanyakan tentang data dashboard Anda</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {/* Chat Icon */}
+                      <div className="flex justify-center py-4">
+                        <div className="w-14 h-14 bg-primary/10 rounded-lg flex items-center justify-center">
+                          <MessageCircle className="w-7 h-7 text-primary" />
+                        </div>
+                      </div>
+                      
+                      {/* Chat Prompt */}
+                      <div className="text-center space-y-2">
+                        <p className="text-sm text-muted-foreground">
+                          Pilih pertanyaan template atau tanyakan langsung tentang data dashboard Anda
+                        </p>
+                      </div>
+
+                      {/* Template Questions */}
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium">Pertanyaan Template:</p>
+                        <button className="w-full text-left text-xs text-muted-foreground hover:text-foreground hover:bg-muted p-2 rounded border border-gray-200 hover:border-gray-300 transition-colors">
+                          • Bagaimana performa penjualan campaign ini?
+                        </button>
+                        <button className="w-full text-left text-xs text-muted-foreground hover:text-foreground hover:bg-muted p-2 rounded border border-gray-200 hover:border-gray-300 transition-colors">
+                          • Influencer mana yang paling berpotensi untuk campaign mendatang?
+                        </button>
+                        <button className="w-full text-left text-xs text-muted-foreground hover:text-foreground hover:bg-muted p-2 rounded border border-gray-200 hover:border-gray-300 transition-colors">
+                          • Apakah ada tren penurunan atau kenaikan yang signifikan?
+                        </button>
+                      </div>
+
+                      {/* Chat Input */}
+                      <div className="pt-1">
+                        <div className="flex items-center space-x-2 p-2 border rounded-lg bg-muted/20">
+                          <input 
+                            type="text" 
+                            placeholder="Tanyakan tentang data dashboard..."
+                            className="flex-1 bg-transparent border-none outline-none text-xs placeholder:text-muted-foreground"
+                          />
+                          <Button size="sm" variant="ghost" className="p-1">
+                            <Send className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Recent Campaigns */}
+              <div className="grid grid-cols-1 gap-6">
+                <Card className="bg-white border hover:shadow-lg transition-shadow duration-200">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Calendar className="w-5 h-5 mr-2" />
+                      Campaign Calendar
+                    </CardTitle>
+                    <CardDescription>Jadwal dan timeline campaign mendatang</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {/* Calendar Header */}
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold">March 2025</h3>
+                        <div className="flex space-x-2">
+                          <Button variant="outline" size="sm">
+                            ← Previous
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            Next →
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Calendar Grid */}
+                      <div className="grid grid-cols-7 gap-2 mb-4">
+                        {/* Days of week */}
+                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                          <div key={day} className="text-center text-sm font-medium text-muted-foreground p-2">
+                            {day}
+                          </div>
+                        ))}
+                        
+                        {/* Calendar Days */}
+                        {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                          <div key={day} className="relative p-2 text-sm border rounded hover:bg-muted transition-colors min-h-[60px]">
+                            <span className="font-medium">{day}</span>
+                            {/* Campaign markers */}
+                            {day === 15 && (
+                              <div className="absolute bottom-1 left-1 right-1">
+                                <div className="bg-primary/20 text-primary text-xs px-1 py-0.5 rounded truncate">
+                                  Skincare Launch
+                                </div>
+                              </div>
+                            )}
+                            {day === 20 && (
+                              <div className="absolute bottom-1 left-1 right-1">
+                                <div className="bg-green-100 text-green-700 text-xs px-1 py-0.5 rounded truncate">
+                                  Content Due
+                                </div>
+                              </div>
+                            )}
+                            {day === 25 && (
+                              <div className="absolute bottom-1 left-1 right-1">
+                                <div className="bg-amber-100 text-amber-700 text-xs px-1 py-0.5 rounded truncate">
+                                  Ramadan Campaign
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Legend */}
+                      <div className="flex items-center space-x-4 text-xs">
+                        <div className="flex items-center space-x-1">
+                          <div className="w-3 h-3 bg-primary/20 rounded"></div>
+                          <span>Campaign Launch</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <div className="w-3 h-3 bg-green-100 rounded"></div>
+                          <span>Content Deadline</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <div className="w-3 h-3 bg-amber-100 rounded"></div>
+                          <span>Planning Phase</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="analytics" className="space-y-6">
+              {/* Analytics Grid - 2 rows, 2 columns */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Content Deliverables Progress */}
+                <Card className="bg-white border hover:shadow-lg transition-shadow duration-200">
+                  <CardHeader>
+                    <CardTitle>Content Deliverables Progress</CardTitle>
+                    <CardDescription>Progress konten dari campaign yang sedang berjalan</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex justify-between mb-1">
+                          <span className="text-sm">Instagram Reels</span>
+                          <span className="text-sm font-medium">3/4</span>
+                        </div>
+                        <Progress value={75} className="h-2" />
+                      </div>
+                      <div>
+                        <div className="flex justify-between mb-1">
+                          <span className="text-sm">Instagram Feeds</span>
+                          <span className="text-sm font-medium">2/2</span>
+                        </div>
+                        <Progress value={100} className="h-2" />
+                      </div>
+                      <div>
+                        <div className="flex justify-between mb-1">
+                          <span className="text-sm">Instagram Stories</span>
+                          <span className="text-sm font-medium">6/8</span>
+                        </div>
+                        <Progress value={75} className="h-2" />
+                      </div>
+                      <div>
+                        <div className="flex justify-between mb-1">
+                          <span className="text-sm">TikTok Videos</span>
+                          <span className="text-sm font-medium">1/2</span>
+                        </div>
+                        <Progress value={50} className="h-2" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Budget vs Timeline */}
+                <Card className="bg-white border hover:shadow-lg transition-shadow duration-200">
+                  <CardHeader>
+                    <CardTitle>Budget vs Timeline</CardTitle>
+                    <CardDescription>Perkembangan budget campaign dalam 6 bulan terakhir</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-64 flex items-center justify-center text-muted-foreground">
+                      <div className="text-center space-y-2">
+                        <DollarSign className="w-12 h-12 mx-auto text-primary/60" />
+                        <p>Chart: Budget Progression</p>
+                        <p className="text-sm text-muted-foreground">Budget efficiency over time</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Engagement vs Reach */}
+                <Card className="bg-white border hover:shadow-lg transition-shadow duration-200">
+                  <CardHeader>
+                    <CardTitle>Engagement vs Reach</CardTitle>
+                    <CardDescription>Perbandingan engagement rate dengan reach</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-64 flex items-center justify-center text-muted-foreground">
+                      <div className="text-center space-y-2">
+                        <Heart className="w-12 h-12 mx-auto text-primary/60" />
+                        <p>Chart: Engagement Analysis</p>
+                        <p className="text-sm text-muted-foreground">Engagement rate vs reach comparison</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Performance Insights */}
+                <Card className="bg-white border hover:shadow-lg transition-shadow duration-200">
+                  <CardHeader>
+                    <CardTitle>Performance Insights</CardTitle>
+                    <CardDescription>Insight dan rekomendasi untuk campaign mendatang</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex items-start space-x-2 p-2 bg-muted border rounded-lg">
+                        <TrendingUp className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                        <div>
+                          <h4 className="font-medium text-foreground text-sm">Best Performing Content</h4>
+                          <p className="text-muted-foreground text-xs mt-1">Instagram Reels mendapat engagement 45% lebih tinggi</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start space-x-2 p-2 bg-muted border rounded-lg">
+                        <Users className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                        <div>
+                          <h4 className="font-medium text-foreground text-sm">Audience Insight</h4>
+                          <p className="text-muted-foreground text-xs mt-1">Target audience paling aktif pada jam 19:00-21:00 WIB</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start space-x-2 p-2 bg-muted border rounded-lg">
+                        <Eye className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                        <div>
+                          <h4 className="font-medium text-foreground text-sm">Optimization Tip</h4>
+                          <p className="text-muted-foreground text-xs mt-1">Konten dengan hashtag niche mendapat reach 32% lebih baik</p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </main>
+
+      <CreateCampaignModal 
+        open={isCreateModalOpen} 
+        onOpenChange={setIsCreateModalOpen}
+        onCampaignCreated={handleCampaignCreated}
+      />
+    </div>
+  )
+}

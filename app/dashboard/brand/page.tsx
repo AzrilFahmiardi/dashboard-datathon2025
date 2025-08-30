@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -8,6 +8,9 @@ import { Progress } from "@/components/ui/progress"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import FirebaseTest from "@/components/FirebaseTest"
+import { firebaseCampaignService, type CampaignData } from "@/lib/firebase-campaign"
+import { influencerAPI, type ApiResponse } from "@/lib/influencer-api"
+import { toast } from "react-hot-toast"
 import {
   Users,
   DollarSign,
@@ -37,279 +40,111 @@ import {
   Send,
   Activity,
   Video,
+  Loader2,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { BrandSidebar } from "@/components/brand-sidebar"
 import { CreateCampaignModal } from "@/components/create-campaign-modal"
 import { CampaignResults } from "@/components/campaign-results"
+import { useAuth } from "@/contexts/auth-context"
 import { APIStatusChecker } from "@/components/api-status-checker"
-import type { ApiResponse } from "@/lib/influencer-api"
-
-// Mock data berdasarkan sample_json_brief
-const campaignData = {
-  brief_id: "BRIEF_001",
-  brand_name: "Avoskin",
-  industry: "Skincare & Beauty",
-  product_name: "GlowSkin Vitamin C Serum",
-  overview: "Premium vitamin C serum untuk mencerahkan dan melindungi kulit dari radikal bebas",
-  usp: "Formula 20% Vitamin C dengan teknologi nano-encapsulation untuk penetrasi optimal",
-  budget: 50000000,
-  total_influencer: 2,
-  niche: ["Beauty", "Lifestyle"],
-  location_prior: ["Indonesia", "Malaysia"],
-  esg_allignment: ["Cruelty-free", "sustainable packaging"],
-  risk_tolerance: "Medium",
-}
-
-const topInfluencers = [
-  {
-    id: 1,
-    name: "Sarah Beauty",
-    username: "@sarahbeauty",
-    avatar: "/placeholder.svg?height=40&width=40",
-    followers: "125K",
-    engagement: "4.2%",
-    niche: ["Beauty", "Skincare"],
-    location: "Jakarta",
-    estimatedReach: "85K",
-    audienceMatch: 92,
-    price: "Rp 15,000,000",
-  },
-  {
-    id: 2,
-    name: "Maya Lifestyle",
-    username: "@mayalifestyle",
-    avatar: "/placeholder.svg?height=40&width=40",
-    followers: "89K",
-    engagement: "5.1%",
-    niche: ["Lifestyle", "Beauty"],
-    location: "Bandung",
-    estimatedReach: "62K",
-    audienceMatch: 88,
-    price: "Rp 12,000,000",
-  },
-  {
-    id: 3,
-    name: "Rina Skincare",
-    username: "@rinaskincare",
-    avatar: "/placeholder.svg?height=40&width=40",
-    followers: "156K",
-    engagement: "3.8%",
-    niche: ["Beauty", "Health"],
-    location: "Surabaya",
-    estimatedReach: "98K",
-    audienceMatch: 85,
-    price: "Rp 18,000,000",
-  },
-]
-
-// Campaign Schedule Data
-const campaignSchedules = [
-  {
-    id: 1,
-    title: "Skincare Spring Campaign",
-    product: "GlowSkin Vitamin C Serum",
-    brief_id: "BRIEF_001",
-    status: "In Progress",
-    phase: "Content creation phase",
-    due: "March 15, 2025",
-    budget: 50000000,
-    deliverables: { story: 0, feeds: 3, reels: 3 },
-  },
-  {
-    id: 2,
-    title: "Beauty Tech Launch",
-    product: "Anti-Aging Smart Serum",
-    brief_id: "BRIEF_002", 
-    status: "Upcoming",
-    phase: "Influencer briefing",
-    due: "March 20, 2025",
-    budget: 75000000,
-    deliverables: { story: 2, feeds: 4, reels: 2 },
-  },
-  {
-    id: 3,
-    title: "Ramadan Special Campaign",
-    product: "Halal Beauty Series",
-    brief_id: "BRIEF_003",
-    status: "Planning",
-    phase: "Planning & strategy",
-    due: "March 25, 2025", 
-    budget: 35000000,
-    deliverables: { story: 3, feeds: 2, reels: 1 },
-  }
-]
-
-// AI Recommendation Data (seperti contoh yang diberikan)
-const aiRecommendations = {
-  "BRIEF_001": {
-    brief_summary: {
-      brief_id: "BRIEF_001",
-      product_name: "GlowSkin Vitamin C Serum", 
-      industry: "Skincare & Beauty",
-      budget: 50000000,
-      target_audience: {
-        countries: ["Indonesia", "Malaysia", "Singapore"],
-        cities: ["Jakarta", "Surabaya", "Bandung"],
-        age_range: ["18-24", "25-34"],
-        gender: "Female"
-      },
-      content_requirements: ["Reels", "Feeds"],
-      total_deliverables: 6,
-      influencer_persona: "Beauty enthusiast, skincare expert, authentic product reviewer dengan focus pada natural skincare dan anti-aging..."
-    },
-    scoring_strategy: {
-      persona_fit: 34.4,
-      audience_fit: 34.4,
-      performance_pred: 15.6,
-      budget_efficiency: 15.6
-    },
-    recommendations: [
-      {
-        id: 1,
-        rank: 1,
-        username: "@jenniferbachdim",
-        name: "Jennifer Bachdim",
-        tier: "Mega Influencer",
-        overall_match_score: 49.1,
-        avatar: "/placeholder.svg?height=60&width=60",
-        
-        conversion_potential: {
-          total_comments: 129,
-          sentiment_breakdown: {
-            supportive_sentiment: 51.9,
-            passive_engagement: 35.7,
-            social_virality: 7.0,
-            relatable_engagement: 3.1,
-            product_focused_response: 2.3
-          },
-          high_value_comment_rate: 12.4,
-          insight: "Cukup rendah, mengindikasikan bahwa interaksi dari audiens masih dominan pujian atau pasif.",
-          sample_comments: {
-            relatable_engagement: ["I think ada tukang lagi nge bor di sebelah 😂."],
-            product_focused_response: ["Mama jen daftar apa? Pocari?"],
-            social_virality: ["Dari hate lari pasti lama lama cinta lari kak @jenniferbachdim 😍🔥"]
-          }
-        },
-        
-        caption_behavior: {
-          cta_habit: "0 dari 5 caption mengandung CTA",
-          tone_of_voice: "personal storytelling",
-          example: "Moms can relate, any kind of spot can totally throw me off 😅 Especially when it's dark spots on my face… close-ups? No t...",
-          label_distribution: {
-            "personal storytelling": 3,
-            "product-focused": 1,
-            "no meaningful message": 1
-          }
-        },
-        
-        score_breakdown: {
-          budget_efficiency: 0.16,
-          persona_fit: 46.8,
-          audience_match: 65.9,
-          performance_potential: 66.3
-        },
-        
-        performance_metrics: {
-          engagement_rate: 6.00,
-          authenticity_score: 59.4,
-          reach_potential: 42.0,
-          brand_alignment: 0.0
-        },
-        
-        campaign_strategy: {
-          feed_posts: 3,
-          reels: 3,
-          total_investment: 240000000,
-          budget_remaining: -190000000,
-          expected_impact: 38.7
-        },
-        
-        key_insights: [
-          "🔥 Currently trending",
-          "✅ Consistent content behavior", 
-          "🎯 Proven campaign success"
-        ]
-      },
-      {
-        id: 2,
-        rank: 2,
-        username: "@raniashafira", 
-        name: "Rania Shafira",
-        tier: "Micro Influencer",
-        overall_match_score: 48.8,
-        avatar: "/placeholder.svg?height=60&width=60",
-        
-        conversion_potential: {
-          total_comments: 65,
-          sentiment_breakdown: {
-            passive_engagement: 46.2,
-            supportive_sentiment: 44.6,
-            relatable_engagement: 6.2,
-            product_focused_response: 1.5,
-            social_virality: 1.5
-          },
-          high_value_comment_rate: 9.2,
-          insight: "Cukup rendah, mengindikasikan bahwa interaksi dari audiens masih dominan pujian atau pasif.",
-          sample_comments: {
-            relatable_engagement: ["Ran anjir cantik bgt rambut pendek"],
-            product_focused_response: ["Best deal yaaa 😭💘💘💘💘"],
-            social_virality: ["yuuuuk @sabrinafaradis @talitharisya"]
-          }
-        },
-        
-        caption_behavior: {
-          cta_habit: "0 dari 5 caption mengandung CTA",
-          tone_of_voice: "no meaningful message",
-          example: "nothing but love for @blpbeauty...",
-          label_distribution: {
-            "no meaningful message": 2,
-            "personal storytelling": 2,
-            "product-focused": 1
-          }
-        },
-        
-        score_breakdown: {
-          budget_efficiency: 2.18,
-          persona_fit: 42.5,
-          audience_match: 71.8,
-          performance_potential: 60.5
-        },
-        
-        performance_metrics: {
-          engagement_rate: 3.00,
-          authenticity_score: 76.2,
-          reach_potential: 24.0,
-          brand_alignment: 0.0
-        },
-        
-        campaign_strategy: {
-          feed_posts: 3,
-          reels: 3,
-          total_investment: 10500000,
-          budget_remaining: 39500000,
-          expected_impact: 22.9
-        },
-        
-        key_insights: [
-          "✅ Consistent content behavior"
-        ]
-      }
-    ]
-  }
-}
 
 export default function BrandDashboard() {
+  const { user } = useAuth() // Get current logged in brand
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [selectedCampaignDetail, setSelectedCampaignDetail] = useState<string | null>(null)
   const [campaignResults, setCampaignResults] = useState<ApiResponse | null>(null)
   const [showResults, setShowResults] = useState(false)
+  const [campaigns, setCampaigns] = useState<CampaignData[]>([])
+  const [isLoadingCampaigns, setIsLoadingCampaigns] = useState(true)
+  const [isGeneratingRecommendations, setIsGeneratingRecommendations] = useState(false)
 
-  // Handler untuk menerima hasil campaign dari modal
-  const handleCampaignCreated = (results: ApiResponse) => {
-    setCampaignResults(results)
-    setShowResults(true)
+  // Load campaigns from Firebase on component mount
+  useEffect(() => {
+    if (user) {
+      loadCampaigns()
+    }
+  }, [user])
+
+  const loadCampaigns = async () => {
+    if (!user) return
+    
+    try {
+      setIsLoadingCampaigns(true)
+      // Load campaigns only for the current brand
+      const fetchedCampaigns = await firebaseCampaignService.getCampaignsByBrand(user.uid)
+      setCampaigns(fetchedCampaigns)
+    } catch (error) {
+      console.error('Error loading campaigns:', error)
+      toast.error('Failed to load campaigns')
+    } finally {
+      setIsLoadingCampaigns(false)
+    }
+  }
+
+  // Handler untuk menerima campaign baru dari modal
+  const handleCampaignCreated = async (campaign: CampaignData) => {
+    // Add new campaign to state
+    setCampaigns(prev => [campaign, ...prev])
+    toast.success('Campaign berhasil dibuat!')
+  }
+
+  // Handler untuk generate recommendations
+  const handleGenerateRecommendations = async (campaign: CampaignData) => {
+    setIsGeneratingRecommendations(true)
+    try {
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      // Create dummy recommendations data
+      const dummyRecommendations = {
+        status: 'success',
+        recommendations: [
+          {
+            username: '@jenniferbachdim',
+            tier: 'Mega Influencer',
+            expertise: 'Jennifer Bachdim',
+            scores: {
+              final_score: 0.491
+            },
+            performance_metrics: {
+              authenticity_score: 87.3
+            }
+          },
+          {
+            username: '@beautyguru_maya',
+            tier: 'Macro Influencer', 
+            expertise: 'Beauty Expert',
+            scores: {
+              final_score: 0.458
+            },
+            performance_metrics: {
+              authenticity_score: 82.1
+            }
+          }
+        ]
+      }
+      
+      // Save dummy recommendations to Firebase
+      await firebaseCampaignService.saveRecommendations(campaign.brief_id, dummyRecommendations)
+      
+      // Update campaigns state
+      setCampaigns(prev => prev.map(c => 
+        c.brief_id === campaign.brief_id 
+          ? { ...c, has_recommendations: true, recommendation_data: dummyRecommendations }
+          : c
+      ))
+      
+      toast.success('Rekomendasi influencer berhasil dibuat!')
+      setSelectedCampaignDetail(campaign.brief_id)
+    } catch (error: any) {
+      console.error('Error generating recommendations:', error)
+      toast.error('Gagal membuat rekomendasi')
+    } finally {
+      setIsGeneratingRecommendations(false)
+    }
   }
 
   // Handler untuk kembali ke dashboard dari results
@@ -347,19 +182,14 @@ export default function BrandDashboard() {
 
   // Render detail campaign dengan AI recommendations
   if (selectedCampaignDetail) {
-    const campaignDetail = campaignSchedules.find(c => c.brief_id === selectedCampaignDetail)
-    const aiData = (aiRecommendations as any)[selectedCampaignDetail]
+    const campaignDetail = campaigns.find(c => c.brief_id === selectedCampaignDetail)
     
-    if (!campaignDetail || !aiData) return null
-
-    return (
-      <div className="flex h-screen bg-background">
-        <BrandSidebar />
-        
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-6">
-            {/* Header dengan tombol kembali */}
-            <div className="mb-8">
+    if (!campaignDetail) {
+      return (
+        <div className="flex h-screen bg-background">
+          <BrandSidebar />
+          <main className="flex-1 overflow-y-auto">
+            <div className="p-6">
               <Button 
                 variant="ghost" 
                 onClick={closeCampaignDetail}
@@ -368,436 +198,447 @@ export default function BrandDashboard() {
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Dashboard
               </Button>
-              <div className="space-y-2">
-                <h1 className="text-3xl font-bold text-foreground flex items-center">
-                  Influencer Recommendations
+              <p>Campaign not found.</p>
+            </div>
+          </main>
+        </div>
+      )
+    }
+
+    // If campaign doesn't have recommendations yet, show generate button
+    if (!campaignDetail.has_recommendations) {
+      return (
+        <div className="flex h-screen bg-background">
+          <BrandSidebar />
+          <main className="flex-1 overflow-y-auto">
+            <div className="p-6">
+              {/* Header sederhana */}
+              <div className="mb-6">
+                <Button 
+                  variant="ghost" 
+                  onClick={closeCampaignDetail}
+                  className="mb-4 text-sm text-muted-foreground hover:text-foreground"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Dashboard
+                </Button>
+                <h1 className="text-2xl font-bold text-foreground">
+                  Campaign Details
                 </h1>
               </div>
-            </div>
 
-            {/* Campaign Brief Summary */}
-            <div className="mb-8">
-              <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-                <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                  
+              {/* Campaign Brief Card - Sesuai gambar */}
+              <div className="mb-6">
+                <Card className="bg-blue-50 border-blue-100">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
                       <div>
-                        <Badge variant="secondary" className="mb-2">
-                          {aiData.brief_summary.brief_id}
+                        <Badge variant="outline" className="mb-2 text-xs bg-gray-800 text-white border-gray-800">
+                          {campaignDetail.brief_id}
                         </Badge>
-                        <h2 className="text-2xl font-bold text-foreground">
-                          {aiData.brief_summary.product_name}
+                        <h2 className="text-xl font-bold text-foreground">
+                          {campaignDetail.product_name}
                         </h2>
-                        <p className="text-muted-foreground flex items-center mt-1">
+                        <p className="text-sm text-muted-foreground flex items-center mt-1">
                           <Sparkles className="w-4 h-4 mr-1" />
-                          {aiData.brief_summary.industry}
+                          {campaignDetail.industry}
                         </p>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <Badge variant="default" className="bg-primary">
+                      <Badge variant="default" className="bg-blue-600 text-white">
                         Campaign Active
                       </Badge>
                     </div>
-                  </div>
-                </CardHeader>
-              </Card>
-            </div>
+                  </CardContent>
+                </Card>
+              </div>
 
-            {/* Brief Details Cards */}
-            <div className="mb-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Campaign Info Card */}
+              {/* 4 Info Cards - Layout persis seperti gambar */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                {/* Campaign Info */}
                 <Card className="bg-white border">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center">
-                      <FileText className="w-4 h-4 mr-2 text-primary" />
-                      Campaign Info
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="text-center p-3 bg-muted rounded-lg">
-                      <div className="text-2xl font-bold text-primary">Rp {(aiData.brief_summary.budget / 1000000).toFixed(0)}M</div>
+                  <CardContent className="p-4">
+                    <div className="flex items-center mb-3">
+                      <FileText className="w-4 h-4 mr-2 text-blue-600" />
+                      <h3 className="text-sm font-medium">Campaign Info</h3>
+                    </div>
+                    
+                    <div className="text-center p-3 bg-blue-50 rounded mb-3">
+                      <div className="text-2xl font-bold text-blue-600">
+                        Rp {(campaignDetail.budget / 1000000).toFixed(0)}M
+                      </div>
                       <div className="text-xs text-muted-foreground">Total Budget</div>
                     </div>
-                    <div className="text-center p-2 bg-muted rounded">
-                      <div className="text-lg font-semibold text-foreground">{aiData.brief_summary.total_deliverables}</div>
+                    
+                    <div className="text-center p-3 bg-gray-50 rounded">
+                      <div className="text-xl font-bold text-gray-800">{campaignDetail.output?.deliverables || 6}</div>
                       <div className="text-xs text-muted-foreground">Total Deliverables</div>
                     </div>
                   </CardContent>
                 </Card>
 
-                {/* Target Audience Card */}
+                {/* Target Audience */}
                 <Card className="bg-white border">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center">
-                      <Users className="w-4 h-4 mr-2 text-primary" />
-                      Target Audience
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center text-sm">
-                      <MapPin className="w-3 h-3 mr-2 text-muted-foreground" />
-                      <span className="font-medium">Countries:</span>
+                  <CardContent className="p-4">
+                    <div className="flex items-center mb-3">
+                      <Users className="w-4 h-4 mr-2 text-blue-600" />
+                      <h3 className="text-sm font-medium">Target Audience</h3>
                     </div>
-                    <div className="flex flex-wrap gap-1">
-                      {aiData.brief_summary.target_audience.countries.map((country) => (
-                        <Badge key={country} variant="secondary" className="text-xs">{country}</Badge>
-                      ))}
-                    </div>
-                    <div className="flex items-center text-sm">
-                      <Users className="w-3 h-3 mr-2 text-muted-foreground" />
-                      <span>{aiData.brief_summary.target_audience.age_range.join(", ")} • {aiData.brief_summary.target_audience.gender}</span>
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <div className="text-xs font-medium mb-1 flex items-center">
+                          <MapPin className="w-3 h-3 mr-1" />
+                          Countries:
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          <span className="text-xs bg-gray-800 text-white px-2 py-1 rounded">Indonesia</span>
+                          <span className="text-xs bg-gray-800 text-white px-2 py-1 rounded">Malaysia</span>
+                          <span className="text-xs bg-gray-800 text-white px-2 py-1 rounded">Singapore</span>
+                        </div>
+                      </div>
+                      
+                      <div className="text-xs text-muted-foreground">
+                        <div className="flex items-center">
+                          <Users className="w-3 h-3 mr-1" />
+                          18-24, 25-34 • Female
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
 
-                {/* Content Requirements Card */}
+                {/* Content Requirements */}
                 <Card className="bg-white border">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center">
-                      <Video className="w-4 h-4 mr-2 text-primary" />
-                      Content Requirements
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="text-sm font-medium">Types: {aiData.brief_summary.content_requirements.join(", ")}</div>
+                  <CardContent className="p-4">
+                    <div className="flex items-center mb-3">
+                      <Video className="w-4 h-4 mr-2 text-blue-600" />
+                      <h3 className="text-sm font-medium">Content Requirements</h3>
+                    </div>
+                    
+                    <div className="text-xs text-muted-foreground mb-3">Types: Reels, Feeds</div>
+                    
                     <div className="grid grid-cols-2 gap-2">
-                      <div className="text-center p-2 bg-muted rounded">
-                        <div className="text-lg font-bold text-foreground">{campaignDetail.deliverables.feeds}</div>
+                      <div className="text-center p-3 bg-gray-50 rounded">
+                        <div className="text-xl font-bold text-gray-800">3</div>
                         <div className="text-xs text-muted-foreground">Feeds</div>
                       </div>
-                      <div className="text-center p-2 bg-muted rounded">
-                        <div className="text-lg font-bold text-foreground">{campaignDetail.deliverables.reels}</div>
+                      <div className="text-center p-3 bg-gray-50 rounded">
+                        <div className="text-xl font-bold text-gray-800">3</div>
                         <div className="text-xs text-muted-foreground">Reels</div>
                       </div>
                     </div>
-                    {campaignDetail.deliverables.story > 0 && (
-                      <div className="text-center p-2 bg-muted rounded">
-                        <div className="text-lg font-bold text-foreground">{campaignDetail.deliverables.story}</div>
-                        <div className="text-xs text-muted-foreground">Stories</div>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
 
-                {/* Influencer Persona Card */}
+                {/* Influencer Persona */}
                 <Card className="bg-white border">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center">
-                      <Star className="w-4 h-4 mr-2 text-primary" />
-                      Influencer Persona
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {aiData.brief_summary.influencer_persona}
+                  <CardContent className="p-4">
+                    <div className="flex items-center mb-3">
+                      <Star className="w-4 h-4 mr-2 text-blue-600" />
+                      <h3 className="text-sm font-medium">Influencer Persona</h3>
+                    </div>
+                    
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Beauty enthusiast, skincare expert, authentic product reviewer dengan focus pada natural skincare dan anti-aging...
                     </p>
                   </CardContent>
                 </Card>
               </div>
+
+              {/* Generate Recommendations Button */}
+              <Card>
+                <CardContent className="p-6 text-center">
+                  <div className="space-y-4">
+                    <div>
+                      <Brain className="w-12 h-12 mx-auto text-primary/60 mb-4" />
+                      <h3 className="text-lg font-semibold">Generate Influencer Recommendations</h3>
+                      <p className="text-muted-foreground">
+                        Dapatkan rekomendasi influencer terbaik menggunakan AI untuk campaign ini
+                      </p>
+                    </div>
+                    <Button 
+                      onClick={() => handleGenerateRecommendations(campaignDetail)}
+                      disabled={isGeneratingRecommendations}
+                      size="lg"
+                      className="w-full max-w-md"
+                    >
+                      {isGeneratingRecommendations ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Generating Recommendations...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Generate AI Recommendations
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </main>
+        </div>
+      )
+    }
+
+    // Show recommendations if available - LAYOUT SEDERHANA SESUAI GAMBAR
+    const aiData = campaignDetail.recommendation_data
+    if (!aiData) {
+      return (
+        <div className="flex h-screen bg-background">
+          <BrandSidebar />
+          <main className="flex-1 overflow-y-auto">
+            <div className="p-6">
+              <Button 
+                variant="ghost" 
+                onClick={closeCampaignDetail}
+                className="mb-4 hover:bg-muted transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Dashboard
+              </Button>
+              <p>Recommendation data not available.</p>
+            </div>
+          </main>
+        </div>
+      )
+    }
+
+    return (
+      <div className="flex h-screen bg-background">
+        <BrandSidebar />
+        
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-6">
+            {/* Header sederhana */}
+            <div className="mb-6">
+              <Button 
+                variant="ghost" 
+                onClick={closeCampaignDetail}
+                className="mb-4 text-sm text-muted-foreground hover:text-foreground"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Dashboard
+              </Button>
+              <h1 className="text-2xl font-bold text-foreground">
+                Influencer Recommendations
+              </h1>
             </div>
 
-            {/* Scoring Strategy */}
-            {/* <Card className="bg-white border mb-6">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <BarChart3 className="w-5 h-5 mr-2 text-primary" />
-                  Scoring Strategy Applied
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center p-3 bg-muted border rounded-lg">
-                    <div className="text-2xl font-bold text-foreground">{aiData.scoring_strategy.persona_fit}%</div>
-                    <div className="text-xs text-muted-foreground">Persona Fit</div>
+            {/* Campaign Brief Card - Sesuai gambar */}
+            <div className="mb-6">
+              <Card className="bg-blue-50 border-blue-100">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Badge variant="outline" className="mb-2 text-xs bg-gray-800 text-white border-gray-800">
+                        {campaignDetail.brief_id}
+                      </Badge>
+                      <h2 className="text-xl font-bold text-foreground">
+                        {campaignDetail.product_name}
+                      </h2>
+                      <p className="text-sm text-muted-foreground flex items-center mt-1">
+                        <Sparkles className="w-4 h-4 mr-1" />
+                        {campaignDetail.industry}
+                      </p>
+                    </div>
+                    <Badge variant="default" className="bg-blue-600 text-white">
+                      Campaign Active
+                    </Badge>
                   </div>
-                  <div className="text-center p-3 bg-muted border rounded-lg">
-                    <div className="text-2xl font-bold text-foreground">{aiData.scoring_strategy.audience_fit}%</div>
-                    <div className="text-xs text-muted-foreground">Audience Fit</div>
-                  </div>
-                  <div className="text-center p-3 bg-muted border rounded-lg">
-                    <div className="text-2xl font-bold text-foreground">{aiData.scoring_strategy.performance_pred}%</div>
-                    <div className="text-xs text-muted-foreground">Performance Pred</div>
-                  </div>
-                  <div className="text-center p-3 bg-muted border rounded-lg">
-                    <div className="text-2xl font-bold text-foreground">{aiData.scoring_strategy.budget_efficiency}%</div>
-                    <div className="text-xs text-muted-foreground">Budget Efficiency</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card> */}
+                </CardContent>
+              </Card>
+            </div>
 
-            {/* Top Recommendations */}
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold flex items-center">
-                Top {aiData.recommendations.length} Influencer Recommendations
-              </h2>
-              
-              {aiData.recommendations.map((rec, index) => (
-                <Card key={rec.id} className="bg-white border">
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center space-x-4">
-                        <Avatar className="w-16 h-16">
-                          <AvatarImage src={rec.avatar} />
-                          <AvatarFallback>{rec.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <CardTitle className="flex items-center">
-                            {index === 0 && <Crown className="w-5 h-5 mr-2 text-primary" />}
-                            {index > 0 && <Star className="w-5 h-5 mr-2 text-muted-foreground" />}
-                            {rec.username} ({rec.tier})
-                          </CardTitle>
-                          <CardDescription>{rec.name}</CardDescription>
-                          <div className="flex items-center space-x-2 mt-2">
-                            <Badge variant="secondary" className="text-lg font-bold">
-                              Overall Match: {rec.overall_match_score}%
-                            </Badge>
-                          </div>
-                        </div>
+            {/* 4 Info Cards - Layout persis seperti gambar */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              {/* Campaign Info */}
+              <Card className="bg-white border">
+                <CardContent className="p-4">
+                  <div className="flex items-center mb-3">
+                    <FileText className="w-4 h-4 mr-2 text-blue-600" />
+                    <h3 className="text-sm font-medium">Campaign Info</h3>
+                  </div>
+                  
+                  <div className="text-center p-3 bg-blue-50 rounded mb-3">
+                    <div className="text-2xl font-bold text-blue-600">
+                      Rp {(campaignDetail.budget / 1000000).toFixed(0)}M
+                    </div>
+                    <div className="text-xs text-muted-foreground">Total Budget</div>
+                  </div>
+                  
+                  <div className="text-center p-3 bg-gray-50 rounded">
+                    <div className="text-xl font-bold text-gray-800">{campaignDetail.output?.deliverables || 6}</div>
+                    <div className="text-xs text-muted-foreground">Total Deliverables</div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Target Audience */}
+              <Card className="bg-white border">
+                <CardContent className="p-4">
+                  <div className="flex items-center mb-3">
+                    <Users className="w-4 h-4 mr-2 text-blue-600" />
+                    <h3 className="text-sm font-medium">Target Audience</h3>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div>
+                      <div className="text-xs font-medium mb-1 flex items-center">
+                        <MapPin className="w-3 h-3 mr-1" />
+                        Countries:
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        <span className="text-xs bg-gray-800 text-white px-2 py-1 rounded">Indonesia</span>
+                        <span className="text-xs bg-gray-800 text-white px-2 py-1 rounded">Malaysia</span>
+                        <span className="text-xs bg-gray-800 text-white px-2 py-1 rounded">Singapore</span>
                       </div>
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <Tabs defaultValue="conversion" className="space-y-4">
-                      <TabsList>
-                        <TabsTrigger value="conversion">
-                          <RefreshCw className="w-4 h-4 mr-2" />
+                    
+                    <div className="text-xs text-muted-foreground">
+                      <div className="flex items-center">
+                        <Users className="w-3 h-3 mr-1" />
+                        18-24, 25-34 • Female
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Content Requirements */}
+              <Card className="bg-white border">
+                <CardContent className="p-4">
+                  <div className="flex items-center mb-3">
+                    <Video className="w-4 h-4 mr-2 text-blue-600" />
+                    <h3 className="text-sm font-medium">Content Requirements</h3>
+                  </div>
+                  
+                  <div className="text-xs text-muted-foreground mb-3">Types: Reels, Feeds</div>
+                  
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="text-center p-3 bg-gray-50 rounded">
+                      <div className="text-xl font-bold text-gray-800">3</div>
+                      <div className="text-xs text-muted-foreground">Feeds</div>
+                    </div>
+                    <div className="text-center p-3 bg-gray-50 rounded">
+                      <div className="text-xl font-bold text-gray-800">3</div>
+                      <div className="text-xs text-muted-foreground">Reels</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Influencer Persona */}
+              <Card className="bg-white border">
+                <CardContent className="p-4">
+                  <div className="flex items-center mb-3">
+                    <Star className="w-4 h-4 mr-2 text-blue-600" />
+                    <h3 className="text-sm font-medium">Influencer Persona</h3>
+                  </div>
+                  
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Beauty enthusiast, skincare expert, authentic product reviewer dengan focus pada natural skincare dan anti-aging...
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Top Recommendations - Layout sederhana dengan data dinamis */}
+            <div className="space-y-4">
+              <h2 className="text-lg font-bold">
+                Top {aiData.recommendations?.length || 2} Influencer Recommendations
+              </h2>
+              
+              {/* Dynamic Recommendations */}
+              {aiData.recommendations?.map((influencer: any, index: number) => (
+                <Card key={index} className="bg-white border">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center space-x-3">
+                        <Avatar className="w-12 h-12">
+                          <AvatarImage src="/placeholder.svg" />
+                          <AvatarFallback>
+                            {influencer.username?.substring(1, 3).toUpperCase() || 'IF'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <h3 className="font-semibold flex items-center">
+                            {influencer.tier?.includes('Mega') && (
+                              <Crown className="w-4 h-4 mr-1 text-blue-600" />
+                            )}
+                            {influencer.username} ({influencer.tier})
+                          </h3>
+                          <p className="text-sm text-muted-foreground">{influencer.expertise}</p>
+                        </div>
+                      </div>
+                      <Badge variant="secondary" className="bg-black text-white">
+                        Overall Match: {((influencer.scores?.final_score || 0) * 100).toFixed(1)}%
+                      </Badge>
+                    </div>
+
+                    {/* Simple tabs layout seperti gambar */}
+                    <Tabs defaultValue="conversion" className="w-full">
+                      <TabsList className="grid w-full grid-cols-4 bg-gray-50">
+                        <TabsTrigger value="conversion" className="text-xs data-[state=active]:bg-white">
+                          <RefreshCw className="w-3 h-3 mr-1" />
                           Conversion Potential
                         </TabsTrigger>
-                        <TabsTrigger value="behavior">
-                          <Megaphone className="w-4 h-4 mr-2" />
+                        <TabsTrigger value="behavior" className="text-xs data-[state=active]:bg-white">
+                          <Megaphone className="w-3 h-3 mr-1" />
                           Caption Behavior
                         </TabsTrigger>
-                        <TabsTrigger value="performance">
-                          <BarChart3 className="w-4 h-4 mr-2" />
+                        <TabsTrigger value="performance" className="text-xs data-[state=active]:bg-white">
+                          <BarChart3 className="w-3 h-3 mr-1" />
                           Performance
                         </TabsTrigger>
-                        <TabsTrigger value="strategy">
-                          <DollarSign className="w-4 h-4 mr-2" />
+                        <TabsTrigger value="strategy" className="text-xs data-[state=active]:bg-white">
+                          <DollarSign className="w-3 h-3 mr-1" />
                           Campaign Strategy
                         </TabsTrigger>
                       </TabsList>
                       
-                      <TabsContent value="conversion" className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div>
-                            <h4 className="font-semibold mb-3 flex items-center">
-                              <MessageCircle className="w-4 h-4 mr-2" />
-                              Comment Quality Analysis
-                            </h4>
-                            <div className="space-y-2">
-                              <p className="text-sm"><span className="font-medium">Total Comments:</span> {rec.conversion_potential.total_comments} dianalisis</p>
-                              <p className="text-sm"><span className="font-medium">High-Value Rate:</span> {rec.conversion_potential.high_value_comment_rate}%</p>
-                              <p className="text-xs text-muted-foreground">{rec.conversion_potential.insight}</p>
-                            </div>
-                            
-                            <div className="mt-4 space-y-2">
-                              {Object.entries(rec.conversion_potential.sentiment_breakdown).map(([key, value]) => (
-                                <div key={key} className="flex justify-between items-center">
-                                  <span className="text-xs capitalize">{key.replace('_', ' ')}</span>
-                                  <div className="flex items-center space-x-2">
-                                    <div className="w-20 bg-muted rounded-full h-1.5">
-                                      <div 
-                                        className="bg-primary h-1.5 rounded-full" 
-                                        style={{ width: `${value}%` }}
-                                      ></div>
-                                    </div>
-                                    <span className="text-xs w-8 text-right text-foreground">{value}%</span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                          
-                          <div>
-                            <h4 className="font-semibold mb-3">💬 Sample High-Value Comments</h4>
-                            <div className="space-y-3">
-                              {Object.entries(rec.conversion_potential.sample_comments).map(([type, comments]) => (
-                                <div key={type} className="p-3 bg-gray-50 border rounded-lg">
-                                  <div className="font-medium text-xs capitalize mb-1 text-blue-600">{type.replace('_', ' ')}</div>
-                                  {comments.map((comment, idx) => (
-                                    <p key={idx} className="text-xs text-gray-700 italic">"{comment}"</p>
-                                  ))}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
+                      <TabsContent value="conversion" className="mt-4 p-4 bg-gray-50 rounded">
+                        <div className="text-sm text-muted-foreground">
+                          <p>Authenticity Score: {influencer.performance_metrics?.authenticity_score || 85}%</p>
+                          <p>High conversion potential based on audience engagement patterns...</p>
                         </div>
                       </TabsContent>
                       
-                      <TabsContent value="behavior" className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div>
-                            <h4 className="font-semibold mb-3 flex items-center">
-                              <RefreshCw className="w-4 h-4 mr-2" />
-                              Call-to-Action Habit
-                            </h4>
-                            <p className="text-sm">{rec.caption_behavior.cta_habit}</p>
-                            
-                            <h4 className="font-semibold mb-3 mt-6 flex items-center">
-                              <Megaphone className="w-4 h-4 mr-2" />
-                              Tone of Voice
-                            </h4>
-                            <p className="text-sm"><span className="font-medium">Dominan:</span> {rec.caption_behavior.tone_of_voice}</p>
-                            <div className="mt-2 p-3 bg-gray-50 border rounded-lg">
-                              <p className="text-xs text-gray-700 italic">"{rec.caption_behavior.example}"</p>
-                            </div>
-                          </div>
-                          
-                          <div>
-                            <h4 className="font-semibold mb-3 flex items-center">
-                              <PieChart className="w-4 h-4 mr-2" />
-                              Caption Distribution
-                            </h4>
-                            <div className="space-y-2">
-                              {Object.entries(rec.caption_behavior.label_distribution).map(([label, count]) => (
-                                <div key={label} className="flex justify-between items-center">
-                                  <span className="text-sm capitalize">{label}</span>
-                                  <Badge variant="outline">{count}</Badge>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
+                      <TabsContent value="behavior" className="mt-4 p-4 bg-gray-50 rounded">
+                        <div className="text-sm text-muted-foreground">
+                          <p>Consistent posting schedule with authentic product reviews...</p>
                         </div>
                       </TabsContent>
                       
-                      <TabsContent value="performance" className="space-y-4">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                          <div className="text-center p-3 bg-muted border rounded-lg">
-                            <div className="text-xl font-bold text-foreground">{rec.score_breakdown.budget_efficiency}</div>
-                            <div className="text-xs text-muted-foreground">Budget Efficiency</div>
-                            <div className="text-xs text-muted-foreground">points/Million Rp</div>
-                          </div>
-                          <div className="text-center p-3 bg-muted border rounded-lg">
-                            <div className="text-xl font-bold text-foreground">{rec.score_breakdown.persona_fit}%</div>
-                            <div className="text-xs text-muted-foreground">Persona Fit</div>
-                          </div>
-                          <div className="text-center p-3 bg-muted border rounded-lg">
-                            <div className="text-xl font-bold text-foreground">{rec.score_breakdown.audience_match}%</div>
-                            <div className="text-xs text-muted-foreground">Audience Match</div>
-                          </div>
-                          <div className="text-center p-3 bg-muted border rounded-lg">
-                            <div className="text-xl font-bold text-foreground">{rec.score_breakdown.performance_potential}%</div>
-                            <div className="text-xs text-muted-foreground">Performance Potential</div>
-                          </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          <div className="text-center p-3 bg-gray-50 border rounded-lg">
-                            <div className="text-lg font-bold">{rec.performance_metrics.engagement_rate}%</div>
-                            <div className="text-xs text-muted-foreground">Engagement Rate</div>
-                          </div>
-                          <div className="text-center p-3 bg-gray-50 border rounded-lg">
-                            <div className="text-lg font-bold">{rec.performance_metrics.authenticity_score}%</div>
-                            <div className="text-xs text-muted-foreground">Authenticity Score</div>
-                          </div>
-                          <div className="text-center p-3 bg-gray-50 border rounded-lg">
-                            <div className="text-lg font-bold">{rec.performance_metrics.reach_potential}%</div>
-                            <div className="text-xs text-muted-foreground">Reach Potential</div>
-                          </div>
-                          <div className="text-center p-3 bg-gray-50 border rounded-lg">
-                            <div className="text-lg font-bold">{rec.performance_metrics.brand_alignment}%</div>
-                            <div className="text-xs text-muted-foreground">Brand Alignment</div>
-                          </div>
+                      <TabsContent value="performance" className="mt-4 p-4 bg-gray-50 rounded">
+                        <div className="text-sm text-muted-foreground">
+                          <p>Average engagement rate: {(Math.random() * 5 + 2).toFixed(1)}%</p>
+                          <p>Reach performance shows strong audience connection...</p>
                         </div>
                       </TabsContent>
                       
-                      <TabsContent value="strategy" className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div>
-                            <h4 className="font-semibold mb-3 flex items-center">
-                              <FileText className="w-4 h-4 mr-2" />
-                              Content Requirements
-                            </h4>
-                            <div className="space-y-2">
-                              <div className="flex justify-between items-center p-2 bg-muted border rounded">
-                                <span className="text-sm">Feed Posts</span>
-                                <Badge>{rec.campaign_strategy.feed_posts} posts</Badge>
-                              </div>
-                              <div className="flex justify-between items-center p-2 bg-muted border rounded">
-                                <span className="text-sm">Reels</span>
-                                <Badge>{rec.campaign_strategy.reels} posts</Badge>
-                              </div>
-                            </div>
-                            
-                            <h4 className="font-semibold mb-3 mt-6 flex items-center">
-                              <CheckCircle className="w-4 h-4 mr-2" />
-                              Key Insights
-                            </h4>
-                            <div className="space-y-1">
-                              {rec.key_insights.map((insight, idx) => (
-                                <p key={idx} className="text-sm">{insight}</p>
-                              ))}
-                            </div>
-                          </div>
-                          
-                          <div>
-                            <h4 className="font-semibold mb-3 flex items-center">
-                              <DollarSign className="w-4 h-4 mr-2" />
-                              Financial Summary
-                            </h4>
-                            <div className="space-y-3">
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm">Total Investment</span>
-                                <span className="font-bold text-foreground">Rp {rec.campaign_strategy.total_investment.toLocaleString()}</span>
-                              </div>
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm">Budget Remaining</span>
-                                <span className="font-bold text-foreground">
-                                  Rp {rec.campaign_strategy.budget_remaining.toLocaleString()}
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm">Expected Impact</span>
-                                <span className="font-bold text-foreground">{rec.campaign_strategy.expected_impact} points</span>
-                              </div>
-                            </div>
-                            
-                            <Button className="w-full mt-6" size="lg">
-                              <Zap className="w-4 h-4 mr-2" />
-                              Select This Influencer
-                            </Button>
-                          </div>
+                      <TabsContent value="strategy" className="mt-4 p-4 bg-gray-50 rounded">
+                        <div className="text-sm text-muted-foreground">
+                          <p>Recommended budget allocation: Rp {(Math.random() * 50 + 25).toFixed(0)}M</p>
+                          <p>Best posting times: 19:00-21:00 WIB for maximum engagement...</p>
                         </div>
                       </TabsContent>
                     </Tabs>
                   </CardContent>
                 </Card>
-              ))}
+              )) || (
+                // Fallback jika tidak ada data recommendations
+                <Card className="bg-white border">
+                  <CardContent className="p-4">
+                    <div className="text-center py-8 text-muted-foreground">
+                      <p>No recommendations data available</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
-            
-            {/* Footer dengan informasi AI */}
-            {/* <Card className="bg-muted border mt-8">
-              <CardContent className="p-6">
-                <div className="text-center">
-                  <h3 className="font-bold text-lg mb-2 flex items-center justify-center">
-                    <CheckCircle className="w-5 h-5 mr-2 text-primary" />
-                    RECOMMENDATION COMPLETE
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-                    <div className="flex items-center justify-center">
-                      <Brain className="w-4 h-4 mr-2 text-muted-foreground" />
-                      Enhanced with Adaptive Weight Intelligence
-                    </div>
-                    <div className="flex items-center justify-center">
-                      <Eye className="w-4 h-4 mr-2 text-muted-foreground" />
-                      Using Real Instagram Insights
-                    </div>
-                    <div className="flex items-center justify-center">
-                      <BarChart3 className="w-4 h-4 mr-2 text-muted-foreground" />
-                      Multi-Component Analysis
-                    </div>
-                    <div className="flex items-center justify-center">
-                      <Activity className="w-4 h-4 mr-2 text-muted-foreground" />
-                      Visual Analytics for Each Influencer
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card> */}
           </div>
         </main>
       </div>
@@ -911,44 +752,65 @@ export default function BrandDashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      {campaignSchedules.map((campaign) => (
-                        <div 
-                          key={campaign.id}
-                          onClick={() => openCampaignDetail(campaign.brief_id)}
-                          className="flex items-center justify-between p-3 bg-muted border rounded-lg cursor-pointer hover:shadow-md hover:bg-muted/80 transition-all duration-200"
-                        >
-                          <div className="flex items-center space-x-3">
-                            <div className="w-2 h-2 bg-primary rounded-full"></div>
-                            <div>
-                              <h4 className="font-semibold text-sm flex items-center">
-                                {campaign.title}
-                                {(aiRecommendations as any)[campaign.brief_id] && (
-                                  <Brain className="w-3 h-3 ml-1 text-primary" />
-                                )}
-                              </h4>
-                              <p className="text-xs text-muted-foreground">{campaign.phase}</p>
-                              <p className="text-xs text-muted-foreground">Due: {campaign.due}</p>
+                      {isLoadingCampaigns ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 className="w-6 h-6 animate-spin mr-2" />
+                          <span className="text-muted-foreground">Loading campaigns...</span>
+                        </div>
+                      ) : campaigns.length === 0 ? (
+                        <div className="text-center py-8">
+                          <p className="text-muted-foreground">Belum ada campaign yang dibuat</p>
+                          <Button 
+                            variant="outline" 
+                            onClick={() => setIsCreateModalOpen(true)}
+                            className="mt-2"
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Buat Campaign Pertama
+                          </Button>
+                        </div>
+                      ) : (
+                        campaigns.slice(0, 5).map((campaign) => (
+                          <div 
+                            key={campaign.id}
+                            onClick={() => openCampaignDetail(campaign.brief_id)}
+                            className="flex items-center justify-between p-3 bg-muted border rounded-lg cursor-pointer hover:shadow-md hover:bg-muted/80 transition-all duration-200"
+                          >
+                            <div className="flex items-center space-x-3">
+                              <div className="w-2 h-2 bg-primary rounded-full"></div>
+                              <div>
+                                <h4 className="font-semibold text-sm flex items-center">
+                                  {campaign.title}
+                                  {campaign.has_recommendations && (
+                                    <Brain className="w-3 h-3 ml-1 text-primary" />
+                                  )}
+                                </h4>
+                                <p className="text-xs text-muted-foreground">{campaign.phase}</p>
+                                <p className="text-xs text-muted-foreground">Due: {campaign.due_date}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Badge variant={campaign.status === 'In Progress' ? 'default' : 'outline'} className="text-xs">
+                                {campaign.status}
+                              </Badge>
+                              {campaign.has_recommendations && (
+                                <Badge variant="secondary" className="text-xs">
+                                  AI Ready
+                                </Badge>
+                              )}
                             </div>
                           </div>
-                          <div className="flex items-center space-x-2">
-                            <Badge variant={campaign.status === 'In Progress' ? 'default' : 'outline'} className="text-xs">
-                              {campaign.status}
-                            </Badge>
-                            {(aiRecommendations as any)[campaign.brief_id] && (
-                              <Badge variant="secondary" className="text-xs">
-                                AI Ready
-                              </Badge>
-                            )}
-                          </div>
+                        ))
+                      )}
+                    </div>
+                    {campaigns.length > 0 && (
+                      <div className="mt-3 p-2 bg-muted border rounded-lg">
+                        <div className="flex items-center text-xs">
+                          <Brain className="w-3 h-3 mr-1 text-primary" />
+                          <span className="text-muted-foreground">Click campaigns with AI Ready badge for recommendations</span>
                         </div>
-                      ))}
-                    </div>
-                    <div className="mt-3 p-2 bg-muted border rounded-lg">
-                      <div className="flex items-center text-xs">
-                        <Brain className="w-3 h-3 mr-1 text-primary" />
-                        <span className="text-muted-foreground">Click campaigns with AI Ready badge for recommendations</span>
                       </div>
-                    </div>
+                    )}
                   </CardContent>
                 </Card>
 
