@@ -10,6 +10,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { BrandSidebar } from "@/components/brand-sidebar"
+import { CreateCampaignModal } from "@/components/create-campaign-modal"
+import { CampaignResults } from "@/components/campaign-results"
+import type { ApiResponse } from "@/lib/influencer-api"
 import { 
   Users, 
   Calendar, 
@@ -145,6 +148,21 @@ export default function MyCampaignsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedStatus, setSelectedStatus] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [campaignResults, setCampaignResults] = useState<ApiResponse | null>(null)
+  const [showResults, setShowResults] = useState(false)
+
+  // Handler untuk menerima hasil campaign dari modal
+  const handleCampaignCreated = (results: ApiResponse) => {
+    setCampaignResults(results)
+    setShowResults(true)
+  }
+
+  // Handler untuk kembali ke campaigns dari results
+  const handleBackFromResults = () => {
+    setShowResults(false)
+    setCampaignResults(null)
+  }
 
   const filteredCampaigns = campaigns.filter(campaign => {
     const matchesSearch = campaign.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -160,6 +178,23 @@ export default function MyCampaignsPage() {
   const totalBudget = campaigns.reduce((acc, c) => acc + parseInt(c.budget.replace(/[^0-9]/g, "")), 0)
   const totalSpent = campaigns.reduce((acc, c) => acc + parseInt(c.spent.replace(/[^0-9]/g, "")), 0)
 
+  // Render results page
+  if (showResults && campaignResults) {
+    return (
+      <div className="flex h-screen bg-background">
+        <BrandSidebar />
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-6">
+            <CampaignResults 
+              data={campaignResults} 
+              onBack={handleBackFromResults}
+            />
+          </div>
+        </main>
+      </div>
+    )
+  }
+
   return (
     <div className="flex h-screen bg-background">
       <BrandSidebar />
@@ -172,7 +207,7 @@ export default function MyCampaignsPage() {
               <h1 className="text-3xl font-bold text-foreground">My Campaigns</h1>
               <p className="text-muted-foreground">Manage and track your influencer campaigns</p>
             </div>
-            <Button>
+            <Button onClick={() => setIsCreateModalOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Create Campaign
             </Button>
@@ -806,6 +841,12 @@ export default function MyCampaignsPage() {
           </Tabs>
         </div>
       </main>
+
+      <CreateCampaignModal 
+        open={isCreateModalOpen} 
+        onOpenChange={setIsCreateModalOpen}
+        onCampaignCreated={handleCampaignCreated}
+      />
     </div>
   )
 }

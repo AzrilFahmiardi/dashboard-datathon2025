@@ -42,6 +42,9 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { BrandSidebar } from "@/components/brand-sidebar"
 import { CreateCampaignModal } from "@/components/create-campaign-modal"
+import { CampaignResults } from "@/components/campaign-results"
+import { APIStatusChecker } from "@/components/api-status-checker"
+import type { ApiResponse } from "@/lib/influencer-api"
 
 // Mock data berdasarkan sample_json_brief
 const campaignData = {
@@ -300,6 +303,20 @@ const aiRecommendations = {
 export default function BrandDashboard() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [selectedCampaignDetail, setSelectedCampaignDetail] = useState<string | null>(null)
+  const [campaignResults, setCampaignResults] = useState<ApiResponse | null>(null)
+  const [showResults, setShowResults] = useState(false)
+
+  // Handler untuk menerima hasil campaign dari modal
+  const handleCampaignCreated = (results: ApiResponse) => {
+    setCampaignResults(results)
+    setShowResults(true)
+  }
+
+  // Handler untuk kembali ke dashboard dari results
+  const handleBackFromResults = () => {
+    setShowResults(false)
+    setCampaignResults(null)
+  }
 
   // Handler untuk membuka detail campaign
   const openCampaignDetail = (briefId: string) => {
@@ -309,6 +326,23 @@ export default function BrandDashboard() {
   // Handler untuk kembali ke dashboard
   const closeCampaignDetail = () => {
     setSelectedCampaignDetail(null)
+  }
+
+  // Render results page
+  if (showResults && campaignResults) {
+    return (
+      <div className="flex h-screen bg-background">
+        <BrandSidebar />
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-6">
+            <CampaignResults 
+              data={campaignResults} 
+              onBack={handleBackFromResults}
+            />
+          </div>
+        </main>
+      </div>
+    )
   }
 
   // Render detail campaign dengan AI recommendations
@@ -855,6 +889,9 @@ export default function BrandDashboard() {
             </Card>
           </div>
 
+          {/* API Status Checker */}
+          <APIStatusChecker />
+
           <Tabs defaultValue="overview" className="space-y-6">
             <TabsList>
               <TabsTrigger value="overview">Campaign Overview</TabsTrigger>
@@ -1173,7 +1210,11 @@ export default function BrandDashboard() {
         </div>
       </main>
 
-      <CreateCampaignModal open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen} />
+      <CreateCampaignModal 
+        open={isCreateModalOpen} 
+        onOpenChange={setIsCreateModalOpen}
+        onCampaignCreated={handleCampaignCreated}
+      />
     </div>
   )
 }
