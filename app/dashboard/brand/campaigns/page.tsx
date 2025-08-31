@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -12,6 +12,9 @@ import { Progress } from "@/components/ui/progress"
 import { BrandSidebar } from "@/components/brand-sidebar"
 import { CreateCampaignModal } from "@/components/create-campaign-modal"
 import { CampaignResults } from "@/components/campaign-results"
+import { firebaseCampaignService, type CampaignData } from "@/lib/firebase-campaign"
+import { useAuth } from "@/contexts/auth-context"
+import { toast } from "react-hot-toast"
 import type { ApiResponse } from "@/lib/influencer-api"
 import { 
   Users, 
@@ -26,136 +29,49 @@ import {
   Eye,
   Heart,
   MessageCircle,
-  MoreHorizontal
+  MoreHorizontal,
+  Loader2
 } from "lucide-react"
 
-// Mock data untuk campaigns
-const campaigns = [
-  {
-    id: 1,
-    name: "Summer Beauty Collection 2024",
-    description: "Promoting our new summer skincare line with top beauty influencers",
-    status: "active",
-    startDate: "2024-01-15",
-    endDate: "2024-02-29",
-    budget: "Rp 150,000,000",
-    spent: "Rp 89,000,000",
-    progress: 65,
-    influencersCount: 8,
-    postsCount: 24,
-    totalReach: "2.5M",
-    engagement: "4.2%",
-    influencers: [
-      { name: "Sarah Beauty", avatar: "/placeholder.svg", status: "completed" },
-      { name: "Maya Lifestyle", avatar: "/placeholder.svg", status: "in-progress" },
-      { name: "Rina Skincare", avatar: "/placeholder.svg", status: "completed" }
-    ],
-    category: "Beauty",
-    priority: "high"
-  },
-  {
-    id: 2,
-    name: "Tech Gadget Launch",
-    description: "Launching our latest smartphone with tech reviewers and lifestyle creators",
-    status: "completed",
-    startDate: "2023-12-01",
-    endDate: "2024-01-15",
-    budget: "Rp 200,000,000", 
-    spent: "Rp 195,000,000",
-    progress: 100,
-    influencersCount: 12,
-    postsCount: 36,
-    totalReach: "3.8M",
-    engagement: "5.1%",
-    influencers: [
-      { name: "Alex Tech", avatar: "/placeholder.svg", status: "completed" },
-      { name: "Dika Fashion", avatar: "/placeholder.svg", status: "completed" },
-      { name: "Luna Food", avatar: "/placeholder.svg", status: "completed" }
-    ],
-    category: "Technology",
-    priority: "medium"
-  },
-  {
-    id: 3,
-    name: "Fashion Week Collaboration",
-    description: "Partnering with fashion influencers for our spring collection showcase",
-    status: "planning",
-    startDate: "2024-03-01",
-    endDate: "2024-04-15",
-    budget: "Rp 300,000,000",
-    spent: "Rp 0",
-    progress: 15,
-    influencersCount: 15,
-    postsCount: 0,
-    totalReach: "0",
-    engagement: "0%",
-    influencers: [
-      { name: "Maya Lifestyle", avatar: "/placeholder.svg", status: "pending" },
-      { name: "Dika Fashion", avatar: "/placeholder.svg", status: "pending" }
-    ],
-    category: "Fashion",
-    priority: "high"
-  },
-  {
-    id: 4,
-    name: "Healthy Lifestyle Campaign",
-    description: "Promoting wellness and healthy living with fitness and food influencers",
-    status: "active",
-    startDate: "2024-01-20",
-    endDate: "2024-03-20",
-    budget: "Rp 120,000,000",
-    spent: "Rp 45,000,000",
-    progress: 38,
-    influencersCount: 6,
-    postsCount: 12,
-    totalReach: "1.2M",
-    engagement: "6.8%",
-    influencers: [
-      { name: "Luna Food", avatar: "/placeholder.svg", status: "in-progress" }
-    ],
-    category: "Lifestyle",
-    priority: "medium"
-  }
-]
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case "active":
-      return "bg-blue-100 text-blue-800"
-    case "completed":
-      return "bg-green-100 text-green-800"
-    case "planning":
-      return "bg-yellow-100 text-yellow-800"
-    default:
-      return "bg-gray-100 text-gray-800"
-  }
-}
-
-const getPriorityColor = (priority: string) => {
-  switch (priority) {
-    case "high":
-      return "bg-red-100 text-red-800"
-    case "medium":
-      return "bg-yellow-100 text-yellow-800"
-    case "low":
-      return "bg-green-100 text-green-800"
-    default:
-      return "bg-gray-100 text-gray-800"
-  }
-}
-
 export default function MyCampaignsPage() {
+  const { user } = useAuth() // Get current logged in brand
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedStatus, setSelectedStatus] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [campaignResults, setCampaignResults] = useState<ApiResponse | null>(null)
   const [showResults, setShowResults] = useState(false)
+  const [campaigns, setCampaigns] = useState<CampaignData[]>([])
+  const [isLoadingCampaigns, setIsLoadingCampaigns] = useState(true)
 
-  // Handler untuk menerima hasil campaign dari modal
-  const handleCampaignCreated = (results: ApiResponse) => {
-    setCampaignResults(results)
-    setShowResults(true)
+  // Load campaigns from Firebase on component mount
+  useEffect(() => {
+    if (user) {
+      loadCampaigns()
+    }
+  }, [user])
+
+  const loadCampaigns = async () => {
+    if (!user) return
+    
+    try {
+      setIsLoadingCampaigns(true)
+      // Load campaigns only for the current brand
+      const fetchedCampaigns = await firebaseCampaignService.getCampaignsByBrand(user.uid)
+      setCampaigns(fetchedCampaigns)
+    } catch (error) {
+      console.error('Error loading campaigns:', error)
+      toast.error('Failed to load campaigns')
+    } finally {
+      setIsLoadingCampaigns(false)
+    }
+  }
+
+  // Handler untuk menerima campaign baru dari modal
+  const handleCampaignCreated = (campaign: CampaignData) => {
+    // Add new campaign to state
+    setCampaigns(prev => [campaign, ...prev])
+    toast.success('Campaign berhasil dibuat!')
   }
 
   // Handler untuk kembali ke campaigns dari results
@@ -164,19 +80,191 @@ export default function MyCampaignsPage() {
     setCampaignResults(null)
   }
 
+  // Utility functions for Firebase data
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "In Progress":
+        return "bg-blue-100 text-blue-800"
+      case "Completed":
+        return "bg-green-100 text-green-800"
+      case "Planning":
+        return "bg-yellow-100 text-yellow-800"
+      case "Upcoming":
+        return "bg-purple-100 text-purple-800"
+      case "Cancelled":
+        return "bg-red-100 text-red-800"
+      default:
+        return "bg-gray-100 text-gray-800"
+    }
+  }
+
+  const formatCurrency = (amount: number): string => {
+    return `Rp ${(amount / 1000000).toFixed(0)}M`
+  }
+
+  const formatDate = (dateString: string): string => {
+    return new Date(dateString).toLocaleDateString('id-ID', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  }
+
+  const calculateProgress = (campaign: CampaignData): number => {
+    const start = new Date(campaign.due_date)
+    const end = new Date()
+    const total = start.getTime() - new Date().getTime()
+    
+    if (campaign.status === 'Completed') return 100
+    if (campaign.status === 'Planning') return 15
+    if (campaign.status === 'Upcoming') return 25
+    if (campaign.status === 'In Progress') return 65
+    return 0
+  }
+
   const filteredCampaigns = campaigns.filter(campaign => {
-    const matchesSearch = campaign.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         campaign.description.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesStatus = !selectedStatus || campaign.status === selectedStatus
-    const matchesCategory = selectedCategory === "all" || campaign.category === selectedCategory
+    const matchesSearch = campaign.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         (campaign.product_name?.toLowerCase().includes(searchQuery.toLowerCase()))
+    const matchesStatus = !selectedStatus || campaign.status.toLowerCase().includes(selectedStatus.toLowerCase())
+    const matchesCategory = selectedCategory === "all" || campaign.industry === selectedCategory
     
     return matchesSearch && matchesStatus && matchesCategory
   })
 
-  const activeCampaigns = campaigns.filter(c => c.status === "active").length
-  const completedCampaigns = campaigns.filter(c => c.status === "completed").length
-  const totalBudget = campaigns.reduce((acc, c) => acc + parseInt(c.budget.replace(/[^0-9]/g, "")), 0)
-  const totalSpent = campaigns.reduce((acc, c) => acc + parseInt(c.spent.replace(/[^0-9]/g, "")), 0)
+  // Calculate dynamic stats
+  const activeCampaigns = campaigns.filter(c => c.status === "In Progress").length
+  const completedCampaigns = campaigns.filter(c => c.status === "Completed").length
+  const totalBudget = campaigns.reduce((acc, c) => acc + (c.budget || 0), 0)
+  const totalScheduledPosts = campaigns.reduce((acc, c) => acc + (c.output?.deliverables || 0), 0)
+
+  // Campaign card renderer
+  const renderCampaignCard = (campaign: CampaignData) => (
+    <Card key={campaign.id} className="hover:shadow-lg transition-shadow duration-200">
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <CardTitle className="text-xl">{campaign.title}</CardTitle>
+              <Badge className={getStatusColor(campaign.status)}>
+                {campaign.status}
+              </Badge>
+              {campaign.has_recommendations && (
+                <Badge variant="outline" className="bg-green-100 text-green-800">
+                  AI Ready
+                </Badge>
+              )}
+            </div>
+            <CardDescription>{campaign.product_name} - {campaign.industry} Campaign</CardDescription>
+            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+              <div className="flex items-center">
+                <Calendar className="w-4 h-4 mr-1" />
+                Due: {formatDate(campaign.due_date)}
+              </div>
+              <div className="flex items-center">
+                <Target className="w-4 h-4 mr-1" />
+                {campaign.brief_id}
+              </div>
+              <Badge variant="outline">{campaign.industry}</Badge>
+            </div>
+          </div>
+          <Button variant="ghost" size="sm">
+            <MoreHorizontal className="w-4 h-4" />
+          </Button>
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-6">
+        {/* Progress */}
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span>Campaign Progress</span>
+            <span>{calculateProgress(campaign)}%</span>
+          </div>
+          <Progress value={calculateProgress(campaign)} className="h-2" />
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="text-center">
+            <div className="flex items-center justify-center text-muted-foreground mb-1">
+              <TrendingUp className="w-4 h-4" />
+            </div>
+            <p className="text-lg font-semibold">{formatCurrency(campaign.budget || 0)}</p>
+            <p className="text-xs text-muted-foreground">Budget</p>
+          </div>
+          <div className="text-center">
+            <div className="flex items-center justify-center text-muted-foreground mb-1">
+              <Users className="w-4 h-4" />
+            </div>
+            <p className="text-lg font-semibold">{campaign.audience_preference?.gender?.length || 0}</p>
+            <p className="text-xs text-muted-foreground">Target Groups</p>
+          </div>
+          <div className="text-center">
+            <div className="flex items-center justify-center text-muted-foreground mb-1">
+              <Eye className="w-4 h-4" />
+            </div>
+            <p className="text-lg font-semibold">{campaign.output?.deliverables || 0}</p>
+            <p className="text-xs text-muted-foreground">Deliverables</p>
+          </div>
+          <div className="text-center">
+            <div className="flex items-center justify-center text-muted-foreground mb-1">
+              <MessageCircle className="w-4 h-4" />
+            </div>
+            <p className="text-lg font-semibold">{campaign.output?.content_types?.length || 0}</p>
+            <p className="text-xs text-muted-foreground">Content Types</p>
+          </div>
+        </div>
+
+        {/* Target Audience */}
+        <div className="space-y-3">
+          <h4 className="text-sm font-medium">Target Audience</h4>
+          <div className="flex items-center space-x-4">
+            <div className="flex flex-wrap gap-1">
+              {campaign.audience_preference?.top_locations?.cities?.slice(0, 3).map((city, idx) => (
+                <Badge key={idx} variant="outline" className="text-xs">
+                  {city}
+                </Badge>
+              )) || <Badge variant="outline" className="text-xs">No cities specified</Badge>}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Age: {campaign.audience_preference?.age_range?.join(', ') || 'Not specified'}
+            </div>
+          </div>
+        </div>
+
+        {/* Niche Tags */}
+        <div className="space-y-2">
+          <h4 className="text-sm font-medium">Campaign Niches</h4>
+          <div className="flex flex-wrap gap-1">
+            {campaign.niche?.map((n, idx) => (
+              <Badge key={idx} variant="secondary" className="text-xs">
+                {n}
+              </Badge>
+            )) || <span className="text-sm text-muted-foreground">No niches specified</span>}
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex space-x-2 pt-4 border-t">
+          <Button variant="outline" size="sm">
+            View Details
+          </Button>
+          <Button variant="outline" size="sm">
+            Edit Campaign
+          </Button>
+          {campaign.has_recommendations ? (
+            <Button variant="outline" size="sm">
+              View AI Recommendations
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm">
+              Generate Recommendations
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  )
 
   // Render results page
   if (showResults && campaignResults) {
@@ -221,9 +309,11 @@ export default function MyCampaignsPage() {
                 <Target className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{campaigns.length}</div>
+                <div className="text-2xl font-bold">
+                  {isLoadingCampaigns ? '...' : campaigns.length}
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  +2 from last month
+                  {isLoadingCampaigns ? 'Loading...' : `${activeCampaigns} active campaigns`}
                 </p>
               </CardContent>
             </Card>
@@ -234,9 +324,11 @@ export default function MyCampaignsPage() {
                 <Clock className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{activeCampaigns}</div>
+                <div className="text-2xl font-bold">
+                  {isLoadingCampaigns ? '...' : activeCampaigns}
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  {completedCampaigns} completed
+                  {isLoadingCampaigns ? 'Loading...' : `${completedCampaigns} completed`}
                 </p>
               </CardContent>
             </Card>
@@ -247,22 +339,26 @@ export default function MyCampaignsPage() {
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">Rp {(totalBudget / 1000000).toFixed(0)}M</div>
+                <div className="text-2xl font-bold">
+                  {isLoadingCampaigns ? '...' : formatCurrency(totalBudget)}
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  Rp {(totalSpent / 1000000).toFixed(0)}M spent
+                  {isLoadingCampaigns ? 'Loading...' : 'Total allocated budget'}
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Avg Performance</CardTitle>
-                <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">Scheduled Posts</CardTitle>
+                <Calendar className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">4.7%</div>
+                <div className="text-2xl font-bold">
+                  {isLoadingCampaigns ? '...' : totalScheduledPosts}
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  Engagement rate
+                  {isLoadingCampaigns ? 'Loading...' : 'Total content planned'}
                 </p>
               </CardContent>
             </Card>
@@ -272,9 +368,10 @@ export default function MyCampaignsPage() {
             <div className="flex items-center justify-between">
               <TabsList>
                 <TabsTrigger value="all">All Campaigns</TabsTrigger>
-                <TabsTrigger value="active">Active</TabsTrigger>
+                <TabsTrigger value="progress">In Progress</TabsTrigger>
                 <TabsTrigger value="completed">Completed</TabsTrigger>
                 <TabsTrigger value="planning">Planning</TabsTrigger>
+                <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
               </TabsList>
 
               {/* Filters */}
@@ -290,552 +387,68 @@ export default function MyCampaignsPage() {
                 </div>
                 <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                   <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Category" />
+                    <SelectValue placeholder="Industry" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
+                    <SelectItem value="all">All Industries</SelectItem>
                     <SelectItem value="Beauty">Beauty</SelectItem>
                     <SelectItem value="Technology">Technology</SelectItem>
                     <SelectItem value="Fashion">Fashion</SelectItem>
                     <SelectItem value="Lifestyle">Lifestyle</SelectItem>
+                    <SelectItem value="Food">Food</SelectItem>
+                    <SelectItem value="Travel">Travel</SelectItem>
+                    <SelectItem value="Health">Health</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
             <TabsContent value="all" className="space-y-6">
+              {isLoadingCampaigns ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin mr-2" />
+                  <span className="text-muted-foreground">Loading campaigns...</span>
+                </div>
+              ) : filteredCampaigns.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No campaigns found matching your criteria</p>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="mt-2"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Your First Campaign
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid gap-6">
+                  {filteredCampaigns.map(renderCampaignCard)}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="progress" className="space-y-6">
               <div className="grid gap-6">
-                {filteredCampaigns.map((campaign) => (
-                  <Card key={campaign.id} className="hover:shadow-lg transition-shadow duration-200">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-2">
-                          <div className="flex items-center space-x-2">
-                            <CardTitle className="text-xl">{campaign.name}</CardTitle>
-                            <Badge className={getStatusColor(campaign.status)}>
-                              {campaign.status}
-                            </Badge>
-                            <Badge variant="outline" className={getPriorityColor(campaign.priority)}>
-                              {campaign.priority} priority
-                            </Badge>
-                          </div>
-                          <CardDescription>{campaign.description}</CardDescription>
-                          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                            <div className="flex items-center">
-                              <Calendar className="w-4 h-4 mr-1" />
-                              {campaign.startDate} - {campaign.endDate}
-                            </div>
-                            <div className="flex items-center">
-                              <Users className="w-4 h-4 mr-1" />
-                              {campaign.influencersCount} influencers
-                            </div>
-                            <Badge variant="outline">{campaign.category}</Badge>
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="sm">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </CardHeader>
-
-                    <CardContent className="space-y-6">
-                      {/* Progress */}
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>Campaign Progress</span>
-                          <span>{campaign.progress}%</span>
-                        </div>
-                        <Progress value={campaign.progress} className="h-2" />
-                      </div>
-
-                      {/* Stats */}
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        <div className="text-center">
-                          <div className="flex items-center justify-center text-muted-foreground mb-1">
-                            <TrendingUp className="w-4 h-4" />
-                          </div>
-                          <p className="text-lg font-semibold">{campaign.budget}</p>
-                          <p className="text-xs text-muted-foreground">Budget</p>
-                        </div>
-                        <div className="text-center">
-                          <div className="flex items-center justify-center text-muted-foreground mb-1">
-                            <Target className="w-4 h-4" />
-                          </div>
-                          <p className="text-lg font-semibold">{campaign.spent}</p>
-                          <p className="text-xs text-muted-foreground">Spent</p>
-                        </div>
-                        <div className="text-center">
-                          <div className="flex items-center justify-center text-muted-foreground mb-1">
-                            <Eye className="w-4 h-4" />
-                          </div>
-                          <p className="text-lg font-semibold">{campaign.totalReach}</p>
-                          <p className="text-xs text-muted-foreground">Total Reach</p>
-                        </div>
-                        <div className="text-center">
-                          <div className="flex items-center justify-center text-muted-foreground mb-1">
-                            <Heart className="w-4 h-4" />
-                          </div>
-                          <p className="text-lg font-semibold">{campaign.engagement}</p>
-                          <p className="text-xs text-muted-foreground">Engagement</p>
-                        </div>
-                        <div className="text-center">
-                          <div className="flex items-center justify-center text-muted-foreground mb-1">
-                            <MessageCircle className="w-4 h-4" />
-                          </div>
-                          <p className="text-lg font-semibold">{campaign.postsCount}</p>
-                          <p className="text-xs text-muted-foreground">Posts</p>
-                        </div>
-                      </div>
-
-                      {/* Influencers */}
-                      <div className="space-y-3">
-                        <h4 className="text-sm font-medium">Participating Influencers</h4>
-                        <div className="flex items-center space-x-4">
-                          {campaign.influencers.slice(0, 3).map((influencer, idx) => (
-                            <div key={idx} className="flex items-center space-x-2">
-                              <Avatar className="w-8 h-8">
-                                <AvatarImage src={influencer.avatar} />
-                                <AvatarFallback>
-                                  {influencer.name.split(' ').map(n => n[0]).join('')}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span className="text-sm">{influencer.name}</span>
-                              {influencer.status === "completed" && (
-                                <CheckCircle className="w-4 h-4 text-green-500" />
-                              )}
-                              {influencer.status === "in-progress" && (
-                                <Clock className="w-4 h-4 text-blue-500" />
-                              )}
-                              {influencer.status === "pending" && (
-                                <AlertCircle className="w-4 h-4 text-yellow-500" />
-                              )}
-                            </div>
-                          ))}
-                          {campaign.influencers.length > 3 && (
-                            <span className="text-sm text-muted-foreground">
-                              +{campaign.influencers.length - 3} more
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex space-x-2 pt-4 border-t">
-                        <Button variant="outline" size="sm">
-                          View Details
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          Edit Campaign
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          View Reports
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                {campaigns.filter(c => c.status === "In Progress").map(renderCampaignCard)}
               </div>
             </TabsContent>
 
-            <TabsContent value="active">
+            <TabsContent value="completed" className="space-y-6">
               <div className="grid gap-6">
-                {campaigns.filter(c => c.status === "active").map((campaign) => (
-                  <Card key={campaign.id} className="hover:shadow-lg transition-shadow duration-200">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-2">
-                          <div className="flex items-center space-x-2">
-                            <CardTitle className="text-xl">{campaign.name}</CardTitle>
-                            <Badge className={getStatusColor(campaign.status)}>
-                              {campaign.status}
-                            </Badge>
-                            <Badge variant="outline" className={getPriorityColor(campaign.priority)}>
-                              {campaign.priority} priority
-                            </Badge>
-                          </div>
-                          <CardDescription>{campaign.description}</CardDescription>
-                          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                            <div className="flex items-center">
-                              <Calendar className="w-4 h-4 mr-1" />
-                              {campaign.startDate} - {campaign.endDate}
-                            </div>
-                            <div className="flex items-center">
-                              <Users className="w-4 h-4 mr-1" />
-                              {campaign.influencersCount} influencers
-                            </div>
-                            <Badge variant="outline">{campaign.category}</Badge>
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="sm">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </CardHeader>
-
-                    <CardContent className="space-y-6">
-                      {/* Progress */}
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>Campaign Progress</span>
-                          <span>{campaign.progress}%</span>
-                        </div>
-                        <Progress value={campaign.progress} className="h-2" />
-                      </div>
-
-                      {/* Stats */}
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        <div className="text-center">
-                          <div className="flex items-center justify-center text-muted-foreground mb-1">
-                            <TrendingUp className="w-4 h-4" />
-                          </div>
-                          <p className="text-lg font-semibold">{campaign.budget}</p>
-                          <p className="text-xs text-muted-foreground">Budget</p>
-                        </div>
-                        <div className="text-center">
-                          <div className="flex items-center justify-center text-muted-foreground mb-1">
-                            <Target className="w-4 h-4" />
-                          </div>
-                          <p className="text-lg font-semibold">{campaign.spent}</p>
-                          <p className="text-xs text-muted-foreground">Spent</p>
-                        </div>
-                        <div className="text-center">
-                          <div className="flex items-center justify-center text-muted-foreground mb-1">
-                            <Eye className="w-4 h-4" />
-                          </div>
-                          <p className="text-lg font-semibold">{campaign.totalReach}</p>
-                          <p className="text-xs text-muted-foreground">Total Reach</p>
-                        </div>
-                        <div className="text-center">
-                          <div className="flex items-center justify-center text-muted-foreground mb-1">
-                            <Heart className="w-4 h-4" />
-                          </div>
-                          <p className="text-lg font-semibold">{campaign.engagement}</p>
-                          <p className="text-xs text-muted-foreground">Engagement</p>
-                        </div>
-                        <div className="text-center">
-                          <div className="flex items-center justify-center text-muted-foreground mb-1">
-                            <MessageCircle className="w-4 h-4" />
-                          </div>
-                          <p className="text-lg font-semibold">{campaign.postsCount}</p>
-                          <p className="text-xs text-muted-foreground">Posts</p>
-                        </div>
-                      </div>
-
-                      {/* Influencers */}
-                      <div className="space-y-3">
-                        <h4 className="text-sm font-medium">Participating Influencers</h4>
-                        <div className="flex items-center space-x-4">
-                          {campaign.influencers.slice(0, 3).map((influencer, idx) => (
-                            <div key={idx} className="flex items-center space-x-2">
-                              <Avatar className="w-8 h-8">
-                                <AvatarImage src={influencer.avatar} />
-                                <AvatarFallback>
-                                  {influencer.name.split(' ').map(n => n[0]).join('')}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span className="text-sm">{influencer.name}</span>
-                              {influencer.status === "completed" && (
-                                <CheckCircle className="w-4 h-4 text-green-500" />
-                              )}
-                              {influencer.status === "in-progress" && (
-                                <Clock className="w-4 h-4 text-blue-500" />
-                              )}
-                              {influencer.status === "pending" && (
-                                <AlertCircle className="w-4 h-4 text-yellow-500" />
-                              )}
-                            </div>
-                          ))}
-                          {campaign.influencers.length > 3 && (
-                            <span className="text-sm text-muted-foreground">
-                              +{campaign.influencers.length - 3} more
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex space-x-2 pt-4 border-t">
-                        <Button variant="outline" size="sm">
-                          View Details
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          Edit Campaign
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          View Reports
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                {campaigns.filter(c => c.status === "Completed").map(renderCampaignCard)}
               </div>
             </TabsContent>
 
-            <TabsContent value="completed">
+            <TabsContent value="planning" className="space-y-6">
               <div className="grid gap-6">
-                {campaigns.filter(c => c.status === "completed").map((campaign) => (
-                  <Card key={campaign.id} className="hover:shadow-lg transition-shadow duration-200">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-2">
-                          <div className="flex items-center space-x-2">
-                            <CardTitle className="text-xl">{campaign.name}</CardTitle>
-                            <Badge className={getStatusColor(campaign.status)}>
-                              {campaign.status}
-                            </Badge>
-                            <Badge variant="outline" className={getPriorityColor(campaign.priority)}>
-                              {campaign.priority} priority
-                            </Badge>
-                          </div>
-                          <CardDescription>{campaign.description}</CardDescription>
-                          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                            <div className="flex items-center">
-                              <Calendar className="w-4 h-4 mr-1" />
-                              {campaign.startDate} - {campaign.endDate}
-                            </div>
-                            <div className="flex items-center">
-                              <Users className="w-4 h-4 mr-1" />
-                              {campaign.influencersCount} influencers
-                            </div>
-                            <Badge variant="outline">{campaign.category}</Badge>
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="sm">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </CardHeader>
-
-                    <CardContent className="space-y-6">
-                      {/* Progress */}
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>Campaign Progress</span>
-                          <span>{campaign.progress}%</span>
-                        </div>
-                        <Progress value={campaign.progress} className="h-2" />
-                      </div>
-
-                      {/* Stats */}
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        <div className="text-center">
-                          <div className="flex items-center justify-center text-muted-foreground mb-1">
-                            <TrendingUp className="w-4 h-4" />
-                          </div>
-                          <p className="text-lg font-semibold">{campaign.budget}</p>
-                          <p className="text-xs text-muted-foreground">Budget</p>
-                        </div>
-                        <div className="text-center">
-                          <div className="flex items-center justify-center text-muted-foreground mb-1">
-                            <Target className="w-4 h-4" />
-                          </div>
-                          <p className="text-lg font-semibold">{campaign.spent}</p>
-                          <p className="text-xs text-muted-foreground">Spent</p>
-                        </div>
-                        <div className="text-center">
-                          <div className="flex items-center justify-center text-muted-foreground mb-1">
-                            <Eye className="w-4 h-4" />
-                          </div>
-                          <p className="text-lg font-semibold">{campaign.totalReach}</p>
-                          <p className="text-xs text-muted-foreground">Total Reach</p>
-                        </div>
-                        <div className="text-center">
-                          <div className="flex items-center justify-center text-muted-foreground mb-1">
-                            <Heart className="w-4 h-4" />
-                          </div>
-                          <p className="text-lg font-semibold">{campaign.engagement}</p>
-                          <p className="text-xs text-muted-foreground">Engagement</p>
-                        </div>
-                        <div className="text-center">
-                          <div className="flex items-center justify-center text-muted-foreground mb-1">
-                            <MessageCircle className="w-4 h-4" />
-                          </div>
-                          <p className="text-lg font-semibold">{campaign.postsCount}</p>
-                          <p className="text-xs text-muted-foreground">Posts</p>
-                        </div>
-                      </div>
-
-                      {/* Influencers */}
-                      <div className="space-y-3">
-                        <h4 className="text-sm font-medium">Participating Influencers</h4>
-                        <div className="flex items-center space-x-4">
-                          {campaign.influencers.slice(0, 3).map((influencer, idx) => (
-                            <div key={idx} className="flex items-center space-x-2">
-                              <Avatar className="w-8 h-8">
-                                <AvatarImage src={influencer.avatar} />
-                                <AvatarFallback>
-                                  {influencer.name.split(' ').map(n => n[0]).join('')}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span className="text-sm">{influencer.name}</span>
-                              {influencer.status === "completed" && (
-                                <CheckCircle className="w-4 h-4 text-green-500" />
-                              )}
-                              {influencer.status === "in-progress" && (
-                                <Clock className="w-4 h-4 text-blue-500" />
-                              )}
-                              {influencer.status === "pending" && (
-                                <AlertCircle className="w-4 h-4 text-yellow-500" />
-                              )}
-                            </div>
-                          ))}
-                          {campaign.influencers.length > 3 && (
-                            <span className="text-sm text-muted-foreground">
-                              +{campaign.influencers.length - 3} more
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex space-x-2 pt-4 border-t">
-                        <Button variant="outline" size="sm">
-                          View Details
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          View Final Report
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          Archive Campaign
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                {campaigns.filter(c => c.status === "Planning").map(renderCampaignCard)}
               </div>
             </TabsContent>
 
-            <TabsContent value="planning">
+            <TabsContent value="upcoming" className="space-y-6">
               <div className="grid gap-6">
-                {campaigns.filter(c => c.status === "planning").map((campaign) => (
-                  <Card key={campaign.id} className="hover:shadow-lg transition-shadow duration-200">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-2">
-                          <div className="flex items-center space-x-2">
-                            <CardTitle className="text-xl">{campaign.name}</CardTitle>
-                            <Badge className={getStatusColor(campaign.status)}>
-                              {campaign.status}
-                            </Badge>
-                            <Badge variant="outline" className={getPriorityColor(campaign.priority)}>
-                              {campaign.priority} priority
-                            </Badge>
-                          </div>
-                          <CardDescription>{campaign.description}</CardDescription>
-                          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                            <div className="flex items-center">
-                              <Calendar className="w-4 h-4 mr-1" />
-                              {campaign.startDate} - {campaign.endDate}
-                            </div>
-                            <div className="flex items-center">
-                              <Users className="w-4 h-4 mr-1" />
-                              {campaign.influencersCount} influencers
-                            </div>
-                            <Badge variant="outline">{campaign.category}</Badge>
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="sm">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </CardHeader>
-
-                    <CardContent className="space-y-6">
-                      {/* Progress */}
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>Campaign Progress</span>
-                          <span>{campaign.progress}%</span>
-                        </div>
-                        <Progress value={campaign.progress} className="h-2" />
-                      </div>
-
-                      {/* Stats */}
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        <div className="text-center">
-                          <div className="flex items-center justify-center text-muted-foreground mb-1">
-                            <TrendingUp className="w-4 h-4" />
-                          </div>
-                          <p className="text-lg font-semibold">{campaign.budget}</p>
-                          <p className="text-xs text-muted-foreground">Budget</p>
-                        </div>
-                        <div className="text-center">
-                          <div className="flex items-center justify-center text-muted-foreground mb-1">
-                            <Target className="w-4 h-4" />
-                          </div>
-                          <p className="text-lg font-semibold">{campaign.spent}</p>
-                          <p className="text-xs text-muted-foreground">Spent</p>
-                        </div>
-                        <div className="text-center">
-                          <div className="flex items-center justify-center text-muted-foreground mb-1">
-                            <Eye className="w-4 h-4" />
-                          </div>
-                          <p className="text-lg font-semibold">{campaign.totalReach}</p>
-                          <p className="text-xs text-muted-foreground">Total Reach</p>
-                        </div>
-                        <div className="text-center">
-                          <div className="flex items-center justify-center text-muted-foreground mb-1">
-                            <Heart className="w-4 h-4" />
-                          </div>
-                          <p className="text-lg font-semibold">{campaign.engagement}</p>
-                          <p className="text-xs text-muted-foreground">Engagement</p>
-                        </div>
-                        <div className="text-center">
-                          <div className="flex items-center justify-center text-muted-foreground mb-1">
-                            <MessageCircle className="w-4 h-4" />
-                          </div>
-                          <p className="text-lg font-semibold">{campaign.postsCount}</p>
-                          <p className="text-xs text-muted-foreground">Posts</p>
-                        </div>
-                      </div>
-
-                      {/* Influencers */}
-                      <div className="space-y-3">
-                        <h4 className="text-sm font-medium">Target Influencers</h4>
-                        <div className="flex items-center space-x-4">
-                          {campaign.influencers.slice(0, 3).map((influencer, idx) => (
-                            <div key={idx} className="flex items-center space-x-2">
-                              <Avatar className="w-8 h-8">
-                                <AvatarImage src={influencer.avatar} />
-                                <AvatarFallback>
-                                  {influencer.name.split(' ').map(n => n[0]).join('')}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span className="text-sm">{influencer.name}</span>
-                              {influencer.status === "completed" && (
-                                <CheckCircle className="w-4 h-4 text-green-500" />
-                              )}
-                              {influencer.status === "in-progress" && (
-                                <Clock className="w-4 h-4 text-blue-500" />
-                              )}
-                              {influencer.status === "pending" && (
-                                <AlertCircle className="w-4 h-4 text-yellow-500" />
-                              )}
-                            </div>
-                          ))}
-                          {campaign.influencers.length > 3 && (
-                            <span className="text-sm text-muted-foreground">
-                              +{campaign.influencers.length - 3} more
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex space-x-2 pt-4 border-t">
-                        <Button variant="outline" size="sm">
-                          Edit Plan
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          Launch Campaign
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          Invite Influencers
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                {campaigns.filter(c => c.status === "Upcoming").map(renderCampaignCard)}
               </div>
             </TabsContent>
           </Tabs>
