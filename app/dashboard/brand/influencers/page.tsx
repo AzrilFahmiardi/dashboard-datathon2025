@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -8,327 +8,125 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { BrandSidebar } from "@/components/brand-sidebar"
-import { Users, Heart, Eye, MapPin, Search, Filter, MessageCircle, Plus } from "lucide-react"
-
-// Mock data untuk influencers berdasarkan data real
-const influencers = [
-  {
-    id: 1,
-    name: "Rere Onni",
-    username: "@rereeonni",
-    influencerId: "INF001",
-    avatar: "/placeholder.svg?height=60&width=60",
-    tier: "Nano",
-    followers: "85K", // Nano tier
-    engagement: "3.7%",
-    averageViews: "13K",
-    avgPostLike: "2.1K",
-    avgComment: "389",
-    niche: ["Lifestyle"],
-    location: "Semarang, Indonesia",
-    rateCardStory: "Rp 300,000",
-    rateCardFeeds: "Rp 800,000", 
-    rateCardReels: "Rp 1,800,000",
-    verified: false,
-    trendingStatus: true,
-    likeabilitySentiment: "Positive",
-    familiarityMedia: 90,
-    campaignSuccess: false,
-    hasRelevantHistory: false,
-    behaviorConsistency: true,
-    randomEndorseRate: 0.35,
-    audienceAnalytics: {
-      topLocations: {
-        countries: [
-          { country: "Indonesia", percent: 80 },
-          { country: "Thailand", percent: 14 },
-          { country: "Malaysia", percent: 6 }
-        ],
-        cities: [
-          { city: "Semarang", percent: 42 },
-          { city: "Bandung", percent: 34 },
-          { city: "Jakarta", percent: 24 }
-        ]
-      },
-      ageRange: [
-        { range: "35-44", percent: 45 },
-        { range: "13-17", percent: 31 },
-        { range: "25-34", percent: 9 }
-      ],
-      gender: [
-        { gender: "Female", percent: 81 },
-        { gender: "Male", percent: 18 },
-        { gender: "Unspecified", percent: 1 }
-      ]
-    }
-  },
-  {
-    id: 2,
-    name: "Nicole Trisia",
-    username: "@nicoletrisia",
-    influencerId: "INF002",
-    avatar: "/placeholder.svg?height=60&width=60",
-    tier: "Nano",
-    followers: "92K",
-    engagement: "2.2%",
-    averageViews: "32K",
-    avgPostLike: "4.6K",
-    avgComment: "483",
-    niche: ["Food"],
-    location: "Jakarta, Indonesia",
-    rateCardStory: "Rp 320,000",
-    rateCardFeeds: "Rp 780,000",
-    rateCardReels: "Rp 1,900,000",
-    verified: true,
-    trendingStatus: true,
-    likeabilitySentiment: "Neutral",
-    familiarityMedia: 82,
-    campaignSuccess: false,
-    hasRelevantHistory: true,
-    behaviorConsistency: false,
-    randomEndorseRate: 0.55,
-    audienceAnalytics: {
-      topLocations: {
-        countries: [
-          { country: "Indonesia", percent: 85 },
-          { country: "Singapore", percent: 10 },
-          { country: "Malaysia", percent: 5 }
-        ],
-        cities: [
-          { city: "Jakarta", percent: 55 },
-          { city: "Surabaya", percent: 25 },
-          { city: "Bandung", percent: 20 }
-        ]
-      },
-      ageRange: [
-        { range: "25-34", percent: 42 },
-        { range: "18-24", percent: 35 },
-        { range: "35-44", percent: 23 }
-      ],
-      gender: [
-        { gender: "Female", percent: 75 },
-        { gender: "Male", percent: 23 },
-        { gender: "Unspecified", percent: 2 }
-      ]
-    }
-  },
-  {
-    id: 3,
-    name: "Fransiska Sonia",
-    username: "@fransiskasonia",
-    influencerId: "INF003",
-    avatar: "/placeholder.svg?height=60&width=60",
-    tier: "Nano",
-    followers: "78K",
-    engagement: "5.3%",
-    averageViews: "21K",
-    avgPostLike: "4.1K",
-    avgComment: "199",
-    niche: ["Fashion"],
-    location: "Bandung, Indonesia",
-    rateCardStory: "Rp 310,000",
-    rateCardFeeds: "Rp 820,000",
-    rateCardReels: "Rp 1,850,000",
-    verified: false,
-    trendingStatus: false,
-    likeabilitySentiment: "Neutral",
-    familiarityMedia: 81,
-    campaignSuccess: true,
-    hasRelevantHistory: false,
-    behaviorConsistency: false,
-    randomEndorseRate: 0.24,
-    audienceAnalytics: {
-      topLocations: {
-        countries: [
-          { country: "Indonesia", percent: 88 },
-          { country: "Malaysia", percent: 8 },
-          { country: "Singapore", percent: 4 }
-        ],
-        cities: [
-          { city: "Bandung", percent: 48 },
-          { city: "Jakarta", percent: 32 },
-          { city: "Yogyakarta", percent: 20 }
-        ]
-      },
-      ageRange: [
-        { range: "18-24", percent: 52 },
-        { range: "25-34", percent: 38 },
-        { range: "13-17", percent: 10 }
-      ],
-      gender: [
-        { gender: "Female", percent: 87 },
-        { gender: "Male", percent: 12 },
-        { gender: "Unspecified", percent: 1 }
-      ]
-    }
-  },
-  {
-    id: 4,
-    name: "Maya Sari",
-    username: "@mayasari",
-    influencerId: "INF004",
-    avatar: "/placeholder.svg?height=60&width=60",
-    tier: "Micro",
-    followers: "156K",
-    engagement: "4.1%",
-    averageViews: "45K",
-    avgPostLike: "6.4K",
-    avgComment: "542",
-    niche: ["Beauty", "Skincare"],
-    location: "Jakarta, Indonesia",
-    rateCardStory: "Rp 500,000",
-    rateCardFeeds: "Rp 1,200,000",
-    rateCardReels: "Rp 2,800,000",
-    verified: true,
-    trendingStatus: true,
-    likeabilitySentiment: "Positive",
-    familiarityMedia: 92,
-    campaignSuccess: true,
-    hasRelevantHistory: true,
-    behaviorConsistency: true,
-    randomEndorseRate: 0.15,
-    audienceAnalytics: {
-      topLocations: {
-        countries: [
-          { country: "Indonesia", percent: 82 },
-          { country: "Malaysia", percent: 12 },
-          { country: "Singapore", percent: 6 }
-        ],
-        cities: [
-          { city: "Jakarta", percent: 45 },
-          { city: "Surabaya", percent: 28 },
-          { city: "Bandung", percent: 27 }
-        ]
-      },
-      ageRange: [
-        { range: "25-34", percent: 48 },
-        { range: "18-24", percent: 32 },
-        { range: "35-44", percent: 20 }
-      ],
-      gender: [
-        { gender: "Female", percent: 89 },
-        { gender: "Male", percent: 10 },
-        { gender: "Unspecified", percent: 1 }
-      ]
-    }
-  },
-  {
-    id: 5,
-    name: "Andi Pratama",
-    username: "@andipratama",
-    influencerId: "INF005",
-    avatar: "/placeholder.svg?height=60&width=60",
-    tier: "Micro",
-    followers: "203K",
-    engagement: "3.8%",
-    averageViews: "58K",
-    avgPostLike: "7.7K",
-    avgComment: "423",
-    niche: ["Technology", "Lifestyle"],
-    location: "Surabaya, Indonesia",
-    rateCardStory: "Rp 650,000",
-    rateCardFeeds: "Rp 1,500,000",
-    rateCardReels: "Rp 3,200,000",
-    verified: true,
-    trendingStatus: false,
-    likeabilitySentiment: "Positive",
-    familiarityMedia: 76,
-    campaignSuccess: true,
-    hasRelevantHistory: true,
-    behaviorConsistency: true,
-    randomEndorseRate: 0.28,
-    audienceAnalytics: {
-      topLocations: {
-        countries: [
-          { country: "Indonesia", percent: 78 },
-          { country: "Malaysia", percent: 15 },
-          { country: "Thailand", percent: 7 }
-        ],
-        cities: [
-          { city: "Surabaya", percent: 38 },
-          { city: "Jakarta", percent: 35 },
-          { city: "Malang", percent: 27 }
-        ]
-      },
-      ageRange: [
-        { range: "18-24", percent: 45 },
-        { range: "25-34", percent: 35 },
-        { range: "13-17", percent: 20 }
-      ],
-      gender: [
-        { gender: "Male", percent: 65 },
-        { gender: "Female", percent: 33 },
-        { gender: "Unspecified", percent: 2 }
-      ]
-    }
-  },
-  {
-    id: 6,
-    name: "Lisa Cooking",
-    username: "@lisacooking",
-    influencerId: "INF006",
-    avatar: "/placeholder.svg?height=60&width=60",
-    tier: "Nano",
-    followers: "64K",
-    engagement: "6.2%",
-    averageViews: "28K",
-    avgPostLike: "3.9K",
-    avgComment: "312",
-    niche: ["Food", "Cooking"],
-    location: "Yogyakarta, Indonesia",
-    rateCardStory: "Rp 280,000",
-    rateCardFeeds: "Rp 750,000",
-    rateCardReels: "Rp 1,650,000",
-    verified: false,
-    trendingStatus: true,
-    likeabilitySentiment: "Positive",
-    familiarityMedia: 87,
-    campaignSuccess: false,
-    hasRelevantHistory: false,
-    behaviorConsistency: true,
-    randomEndorseRate: 0.42,
-    audienceAnalytics: {
-      topLocations: {
-        countries: [
-          { country: "Indonesia", percent: 91 },
-          { country: "Malaysia", percent: 6 },
-          { country: "Singapore", percent: 3 }
-        ],
-        cities: [
-          { city: "Yogyakarta", percent: 52 },
-          { city: "Solo", percent: 28 },
-          { city: "Jakarta", percent: 20 }
-        ]
-      },
-      ageRange: [
-        { range: "25-34", percent: 42 },
-        { range: "35-44", percent: 38 },
-        { range: "18-24", percent: 20 }
-      ],
-      gender: [
-        { gender: "Female", percent: 84 },
-        { gender: "Male", percent: 15 },
-        { gender: "Unspecified", percent: 1 }
-      ]
-    }
-  }
-]
+import { csvInfluencerService, type InfluencerData } from "@/lib/csv-reader"
+import { 
+  Users, 
+  Heart, 
+  Eye, 
+  MapPin, 
+  Search, 
+  Filter, 
+  MessageCircle, 
+  Plus, 
+  Loader2,
+  Star,
+  DollarSign,
+  Crown,
+  Flame,
+  CheckCircle
+} from "lucide-react"
 
 export default function InfluencerListPage() {
+  const [influencers, setInfluencers] = useState<InfluencerData[]>([])
+  const [filteredInfluencers, setFilteredInfluencers] = useState<InfluencerData[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedNiche, setSelectedNiche] = useState("all")
   const [selectedLocation, setSelectedLocation] = useState("all")
   const [selectedTier, setSelectedTier] = useState("all")
 
-  const filteredInfluencers = influencers.filter(influencer => {
-    const matchesSearch = influencer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         influencer.username.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesNiche = selectedNiche === "all" || influencer.niche.includes(selectedNiche)
-    const matchesLocation = selectedLocation === "all" || influencer.location.includes(selectedLocation)
-    const matchesTier = selectedTier === "all" || influencer.tier === selectedTier
-    
-    return matchesSearch && matchesNiche && matchesLocation && matchesTier
-  })
+  useEffect(() => {
+    loadInfluencers()
+  }, [])
+
+  useEffect(() => {
+    applyFilters()
+  }, [influencers, searchQuery, selectedNiche, selectedLocation, selectedTier])
+
+  const loadInfluencers = async () => {
+    try {
+      setIsLoading(true)
+      const data = await csvInfluencerService.loadInfluencers()
+      setInfluencers(data)
+    } catch (error) {
+      console.error('Error loading influencers:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const applyFilters = () => {
+    let filtered = [...influencers]
+
+    // Search filter
+    if (searchQuery) {
+      const searchTerm = searchQuery.toLowerCase()
+      filtered = filtered.filter(influencer =>
+        influencer.username_instagram.toLowerCase().includes(searchTerm) ||
+        influencer.expertise_field.toLowerCase().includes(searchTerm) ||
+        influencer.influencer_id.toLowerCase().includes(searchTerm)
+      )
+    }
+
+    // Niche filter (expertise field)
+    if (selectedNiche !== "all") {
+      filtered = filtered.filter(influencer =>
+        influencer.expertise_field.toLowerCase().includes(selectedNiche.toLowerCase())
+      )
+    }
+
+    // Location filter
+    if (selectedLocation !== "all") {
+      filtered = filtered.filter(influencer =>
+        influencer.audience_analytics?.top_locations?.cities?.some(city =>
+          city.city.toLowerCase().includes(selectedLocation.toLowerCase())
+        ) || influencer.audience_analytics?.top_locations?.countries?.some(country =>
+          country.country.toLowerCase().includes(selectedLocation.toLowerCase())
+        )
+      )
+    }
+
+    // Tier filter
+    if (selectedTier !== "all") {
+      filtered = filtered.filter(influencer => influencer.tier_followers === selectedTier)
+    }
+
+    setFilteredInfluencers(filtered)
+  }
+
+  const formatNumber = (num: number): string => {
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
+    return num.toString()
+  }
+
+  const formatCurrency = (num: number): string => {
+    if (num >= 1000000) return `Rp ${(num / 1000000).toFixed(1)}M`
+    if (num >= 1000) return `Rp ${(num / 1000).toFixed(0)}K`
+    return `Rp ${num}`
+  }
+
+  const getTierColor = (tier: string): string => {
+    switch (tier.toLowerCase()) {
+      case 'mega': return 'bg-purple-100 text-purple-800 border-purple-200'
+      case 'macro': return 'bg-blue-100 text-blue-800 border-blue-200'
+      case 'mid': return 'bg-green-100 text-green-800 border-green-200'
+      case 'micro': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+      case 'nano': return 'bg-gray-100 text-gray-800 border-gray-200'
+      default: return 'bg-gray-100 text-gray-800 border-gray-200'
+    }
+  }
+
+  const getTopLocation = (analytics: any): string => {
+    if (!analytics?.top_locations?.cities?.length) return 'Unknown'
+    return analytics.top_locations.cities[0].city
+  }
+
+  // Get unique expertise fields for filter
+  const uniqueExpertiseFields = [...new Set(influencers.map(inf => inf.expertise_field))].slice(0, 10)
+  const uniqueLocations = [...new Set(
+    influencers.flatMap(inf => inf.audience_analytics?.top_locations?.cities?.map(city => city.city) || [])
+  )].slice(0, 10)
 
   return (
     <div className="flex h-screen bg-background">
@@ -364,29 +162,15 @@ export default function InfluencerListPage() {
                     className="pl-10"
                   />
                 </div>
-                <Select value={selectedTier} onValueChange={setSelectedTier}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select tier" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Tiers</SelectItem>
-                    <SelectItem value="Nano">Nano (50K-100K)</SelectItem>
-                    <SelectItem value="Micro">Micro (100K-500K)</SelectItem>
-                  </SelectContent>
-                </Select>
                 <Select value={selectedNiche} onValueChange={setSelectedNiche}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select niche" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Niches</SelectItem>
-                    <SelectItem value="Beauty">Beauty</SelectItem>
-                    <SelectItem value="Skincare">Skincare</SelectItem>
-                    <SelectItem value="Fashion">Fashion</SelectItem>
-                    <SelectItem value="Lifestyle">Lifestyle</SelectItem>
-                    <SelectItem value="Technology">Technology</SelectItem>
-                    <SelectItem value="Food">Food</SelectItem>
-                    <SelectItem value="Cooking">Cooking</SelectItem>
+                    {uniqueExpertiseFields.map(field => (
+                      <SelectItem key={field} value={field}>{field}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <Select value={selectedLocation} onValueChange={setSelectedLocation}>
@@ -395,11 +179,22 @@ export default function InfluencerListPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Locations</SelectItem>
-                    <SelectItem value="Jakarta">Jakarta</SelectItem>
-                    <SelectItem value="Bandung">Bandung</SelectItem>
-                    <SelectItem value="Surabaya">Surabaya</SelectItem>
-                    <SelectItem value="Yogyakarta">Yogyakarta</SelectItem>
-                    <SelectItem value="Semarang">Semarang</SelectItem>
+                    {uniqueLocations.map(location => (
+                      <SelectItem key={location} value={location}>{location}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={selectedTier} onValueChange={setSelectedTier}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select tier" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Tiers</SelectItem>
+                    <SelectItem value="Mega">Mega (1M+)</SelectItem>
+                    <SelectItem value="Macro">Macro (500K+)</SelectItem>
+                    <SelectItem value="Mid">Mid (100K+)</SelectItem>
+                    <SelectItem value="Micro">Micro (10K+)</SelectItem>
+                    <SelectItem value="Nano">Nano (1K+)</SelectItem>
                   </SelectContent>
                 </Select>
                 <Button variant="outline">
@@ -413,118 +208,176 @@ export default function InfluencerListPage() {
           {/* Results */}
           <div className="mb-4">
             <p className="text-muted-foreground">
-              Showing {filteredInfluencers.length} of {influencers.length} influencers
+              {isLoading ? (
+                <span className="flex items-center">
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Loading influencers...
+                </span>
+              ) : (
+                `Showing ${filteredInfluencers.length} of ${influencers.length} influencers`
+              )}
             </p>
           </div>
 
           {/* Influencer Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredInfluencers.map((influencer) => (
-              <Card key={influencer.id} className="hover:shadow-lg transition-shadow duration-200">
-                <CardHeader className="pb-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center space-x-3">
-                      <Avatar className="w-16 h-16">
-                        <AvatarImage src={influencer.avatar} />
-                        <AvatarFallback>
-                          {influencer.name.split(' ').map(n => n[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin mr-3" />
+              <span className="text-lg">Loading influencers from CSV...</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredInfluencers.map((influencer, index) => (
+                <Card key={influencer.influencer_id} className="hover:shadow-lg transition-shadow duration-200">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center space-x-3">
+                        <Avatar className="w-16 h-16">
+                          <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                            {influencer.username_instagram.substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <h3 className="font-semibold text-lg flex items-center">
+                              {influencer.tier_followers === 'Mega' && (
+                                <Crown className="w-4 h-4 mr-1 text-purple-600" />
+                              )}
+                              @{influencer.username_instagram}
+                              {influencer.trending_status && (
+                                <Flame className="w-3 h-3 ml-1 text-orange-500" />
+                              )}
+                            </h3>
+                            <Badge className={getTierColor(influencer.tier_followers)} variant="outline">
+                              {influencer.tier_followers}
+                            </Badge>
+                          </div>
+                          <p className="text-muted-foreground text-sm">{influencer.influencer_id}</p>
+                          <div className="flex items-center text-xs text-muted-foreground mt-1">
+                            <MapPin className="w-3 h-3 mr-1" />
+                            {getTopLocation(influencer.audience_analytics)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardHeader>
+
+                  <CardContent className="space-y-4">
+                    {/* Stats */}
+                    <div className="grid grid-cols-4 gap-4 text-center">
                       <div>
-                        <div className="flex items-center space-x-2">
-                          <h3 className="font-semibold text-lg">{influencer.name}</h3>
-                          <Badge variant="secondary" className="text-xs">
-                            {influencer.tier}
-                          </Badge>
+                        <div className="flex items-center justify-center text-primary mb-1">
+                          <Users className="w-4 h-4" />
                         </div>
-                        <p className="text-muted-foreground text-sm">{influencer.username}</p>
-                        <div className="flex items-center text-xs text-muted-foreground mt-1">
-                          <MapPin className="w-3 h-3 mr-1" />
-                          {influencer.location}
+                        <p className="text-lg font-semibold">{csvInfluencerService.getFollowerEstimate(influencer.tier_followers)}</p>
+                        <p className="text-xs text-muted-foreground">Followers</p>
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-center text-primary mb-1">
+                          <Heart className="w-4 h-4" />
                         </div>
+                        <p className="text-lg font-semibold">{(influencer.engagement_rate_pct * 100).toFixed(1)}%</p>
+                        <p className="text-xs text-muted-foreground">Engagement</p>
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-center text-primary mb-1">
+                          <Eye className="w-4 h-4" />
+                        </div>
+                        <p className="text-lg font-semibold">{formatNumber(influencer.avg_reels_views)}</p>
+                        <p className="text-xs text-muted-foreground">Avg Views</p>
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-center text-primary mb-1">
+                          <MessageCircle className="w-4 h-4" />
+                        </div>
+                        <p className="text-lg font-semibold">{formatNumber(influencer.avg_comment)}</p>
+                        <p className="text-xs text-muted-foreground">Avg Comments</p>
                       </div>
                     </div>
-                  </div>
-                </CardHeader>
 
-                <CardContent className="space-y-4">
-                  {/* Stats */}
-                  <div className="grid grid-cols-4 gap-4 text-center">
+                    {/* Niches */}
                     <div>
-                      <div className="flex items-center justify-center text-primary mb-1">
-                        <Users className="w-4 h-4" />
-                      </div>
-                      <p className="text-lg font-semibold">{influencer.followers}</p>
-                      <p className="text-xs text-muted-foreground">Followers</p>
-                    </div>
-                    <div>
-                      <div className="flex items-center justify-center text-primary mb-1">
-                        <Heart className="w-4 h-4" />
-                      </div>
-                      <p className="text-lg font-semibold">{influencer.engagement}</p>
-                      <p className="text-xs text-muted-foreground">Engagement</p>
-                    </div>
-                    <div>
-                      <div className="flex items-center justify-center text-primary mb-1">
-                        <Eye className="w-4 h-4" />
-                      </div>
-                      <p className="text-lg font-semibold">{influencer.averageViews}</p>
-                      <p className="text-xs text-muted-foreground">Avg Views</p>
-                    </div>
-                    <div>
-                      <div className="flex items-center justify-center text-primary mb-1">
-                        <MessageCircle className="w-4 h-4" />
-                      </div>
-                      <p className="text-lg font-semibold">{influencer.avgComment}</p>
-                      <p className="text-xs text-muted-foreground">Avg Comments</p>
-                    </div>
-                  </div>
-
-                  {/* Niches */}
-                  <div>
-                    <div className="flex flex-wrap gap-1">
-                      {influencer.niche.map((tag) => (
-                        <Badge key={tag} variant="outline" className="text-xs">
-                          {tag}
+                      <div className="flex flex-wrap gap-1">
+                        <Badge variant="outline" className="text-xs">
+                          {influencer.expertise_field}
                         </Badge>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Rate Cards & Actions */}
-                  <div className="space-y-3 pt-2">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground mb-2">Rate Cards</p>
-                      <div className="grid grid-cols-3 gap-2 text-center">
-                        <div className="bg-muted/50 rounded-lg p-2">
-                          <p className="text-sm font-semibold">{influencer.rateCardStory}</p>
-                          <p className="text-xs text-muted-foreground">Story</p>
-                        </div>
-                        <div className="bg-muted/50 rounded-lg p-2">
-                          <p className="text-sm font-semibold">{influencer.rateCardFeeds}</p>
-                          <p className="text-xs text-muted-foreground">Feeds</p>
-                        </div>
-                        <div className="bg-muted/50 rounded-lg p-2">
-                          <p className="text-sm font-semibold">{influencer.rateCardReels}</p>
-                          <p className="text-xs text-muted-foreground">Reels</p>
-                        </div>
+                        {influencer.campaign_success_signif && (
+                          <Badge className="bg-green-100 text-green-800 border-green-200 text-xs" variant="outline">
+                            ✅ Proven
+                          </Badge>
+                        )}
+                        {influencer.has_relevant_history && (
+                          <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                            📈 History
+                          </Badge>
+                        )}
                       </div>
                     </div>
 
-                    {/* Additional Info */}
-                    <div className="flex space-x-2">
-                      <Button variant="outline" size="sm">
-                        <MessageCircle className="w-4 h-4" />
-                      </Button>
-                      <Button size="sm">
-                        Invite
-                      </Button>
+                    {/* Rate Cards & Actions */}
+                    <div className="space-y-3 pt-2">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground mb-2">Rate Cards</p>
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                          <div className="bg-muted/50 rounded-lg p-2">
+                            <p className="text-sm font-semibold">{formatCurrency(influencer.rate_card_story)}</p>
+                            <p className="text-xs text-muted-foreground">Story</p>
+                          </div>
+                          <div className="bg-muted/50 rounded-lg p-2">
+                            <p className="text-sm font-semibold">{formatCurrency(influencer.rate_card_feeds)}</p>
+                            <p className="text-xs text-muted-foreground">Feeds</p>
+                          </div>
+                          <div className="bg-muted/50 rounded-lg p-2">
+                            <p className="text-sm font-semibold">{formatCurrency(influencer.rate_card_reels)}</p>
+                            <p className="text-xs text-muted-foreground">Reels</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Additional Info & Actions */}
+                      <div className="flex justify-between items-center">
+                        <div className="flex gap-1">
+                          {influencer.behavior_consistency && (
+                            <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                              🎯 Consistent
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button variant="outline" size="sm">
+                            <MessageCircle className="w-4 h-4" />
+                          </Button>
+                          <Button size="sm">
+                            Invite
+                          </Button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {!isLoading && filteredInfluencers.length === 0 && (
+            <Card>
+              <CardContent className="text-center py-8">
+                <p className="text-muted-foreground">No influencers found matching your criteria</p>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setSearchQuery("")
+                    setSelectedNiche("all")
+                    setSelectedLocation("all")
+                    setSelectedTier("all")
+                  }}
+                  className="mt-2"
+                >
+                  Clear Filters
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </main>
     </div>

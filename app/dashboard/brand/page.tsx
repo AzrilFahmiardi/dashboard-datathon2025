@@ -50,6 +50,7 @@ import { BrandSidebar } from "@/components/brand-sidebar"
 import { CreateCampaignModal } from "@/components/create-campaign-modal"
 import { CampaignResults } from "@/components/campaign-results"
 import { BrandProfileForm } from "@/components/brand-profile-form"
+import { InfluencerList } from "@/components/influencer-list"
 import { useAuth } from "@/contexts/auth-context"
 import { APIStatusChecker } from "@/components/api-status-checker"
 
@@ -851,6 +852,7 @@ export default function BrandDashboard() {
             <TabsList>
               <TabsTrigger value="overview">Campaign Overview</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
+              <TabsTrigger value="influencers">Influencer List</TabsTrigger>
               <TabsTrigger value="profile">Brand Profile</TabsTrigger>
             </TabsList>
 
@@ -1187,6 +1189,10 @@ export default function BrandDashboard() {
                   </CardContent>
                 </Card>
               </div>
+            </TabsContent>
+
+            <TabsContent value="influencers" className="space-y-6">
+              <InfluencerList />
             </TabsContent>
 
             <TabsContent value="profile" className="space-y-6">
