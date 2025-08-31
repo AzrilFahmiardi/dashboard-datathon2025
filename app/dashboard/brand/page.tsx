@@ -64,6 +64,76 @@ export default function BrandDashboard() {
   const [campaigns, setCampaigns] = useState<CampaignData[]>([])
   const [isLoadingCampaigns, setIsLoadingCampaigns] = useState(true)
   const [isGeneratingRecommendations, setIsGeneratingRecommendations] = useState(false)
+  const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date())
+
+  // Calculate dynamic dashboard stats
+  const dashboardStats = {
+    totalCampaigns: campaigns.length,
+    activeCampaigns: campaigns.filter(c => c.status === 'In Progress' || c.status === 'Upcoming').length,
+    campaignsWithRecommendations: campaigns.filter(c => c.has_recommendations).length,
+    totalBudget: campaigns.reduce((sum, campaign) => sum + (campaign.budget || 0), 0),
+    scheduledPosts: campaigns.reduce((sum, campaign) => sum + (campaign.output?.deliverables || 0), 0)
+  }
+
+  // Generate dynamic calendar data
+  const generateCalendarData = () => {
+    const year = currentCalendarDate.getFullYear()
+    const month = currentCalendarDate.getMonth()
+    const daysInMonth = new Date(year, month + 1, 0).getDate()
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ]
+    
+    // Parse campaign dates and map to calendar
+    const campaignEvents: { [key: number]: Array<{ title: string, type: string }> } = {}
+    
+    campaigns.forEach(campaign => {
+      if (campaign.due_date) {
+        try {
+          const dueDate = new Date(campaign.due_date)
+          if (dueDate.getFullYear() === year && dueDate.getMonth() === month) {
+            const day = dueDate.getDate()
+            if (!campaignEvents[day]) campaignEvents[day] = []
+            
+            // Determine event type based on campaign status
+            let eventType = 'planning'
+            if (campaign.status === 'In Progress') eventType = 'launch'
+            else if (campaign.status === 'Upcoming') eventType = 'deadline'
+            
+            campaignEvents[day].push({
+              title: campaign.title || campaign.product_name,
+              type: eventType
+            })
+          }
+        } catch (error) {
+          console.error('Error parsing campaign date:', error)
+        }
+      }
+    })
+    
+    return {
+      monthName: monthNames[month],
+      year,
+      daysInMonth,
+      campaignEvents
+    }
+  }
+
+  const calendarData = generateCalendarData()
+
+  // Calendar navigation functions
+  const navigateCalendar = (direction: 'prev' | 'next') => {
+    setCurrentCalendarDate(prev => {
+      const newDate = new Date(prev)
+      if (direction === 'prev') {
+        newDate.setMonth(prev.getMonth() - 1)
+      } else {
+        newDate.setMonth(prev.getMonth() + 1)
+      }
+      return newDate
+    })
+  }
 
   // Load campaigns from Firebase on component mount
   useEffect(() => {
@@ -706,24 +776,32 @@ export default function BrandDashboard() {
                 </div>
               </div>
               <div className="mt-3">
-                <div className="text-2xl font-bold">1,247</div>
+                <div className="text-2xl font-bold">
+                  {isLoadingCampaigns ? '...' : dashboardStats.totalCampaigns}
+                </div>
                 <div className="text-sm font-medium text-foreground">Total Campaigns</div>
-                <div className="text-xs text-muted-foreground">Active campaigns</div>
+                <div className="text-xs text-muted-foreground">
+                  {isLoadingCampaigns ? 'Loading...' : `${dashboardStats.activeCampaigns} active campaigns`}
+                </div>
               </div>
             </Card>
 
             <Card className="p-4 hover:shadow-lg transition-shadow duration-200">
               <div className="flex items-start justify-between">
                 <Users className="h-5 w-5 text-muted-foreground" />
-                <div className="flex items-center text-sm text-red-600">
-                  <TrendingDown className="h-3 w-3 mr-1" />
-                  -2.1%
+                <div className="flex items-center text-sm text-green-600">
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                  +8.2%
                 </div>
               </div>
               <div className="mt-3">
-                <div className="text-2xl font-bold">24</div>
-                <div className="text-sm font-medium text-foreground">Active Influencers</div>
-                <div className="text-xs text-muted-foreground">Collaborating now</div>
+                <div className="text-2xl font-bold">
+                  {isLoadingCampaigns ? '...' : dashboardStats.campaignsWithRecommendations}
+                </div>
+                <div className="text-sm font-medium text-foreground">AI Recommendations</div>
+                <div className="text-xs text-muted-foreground">
+                  {isLoadingCampaigns ? 'Loading...' : 'Campaigns with AI insights'}
+                </div>
               </div>
             </Card>
 
@@ -736,9 +814,13 @@ export default function BrandDashboard() {
                 </div>
               </div>
               <div className="mt-3">
-                <div className="text-2xl font-bold">18</div>
+                <div className="text-2xl font-bold">
+                  {isLoadingCampaigns ? '...' : dashboardStats.scheduledPosts}
+                </div>
                 <div className="text-sm font-medium text-foreground">Scheduled Posts</div>
-                <div className="text-xs text-muted-foreground">Upcoming content</div>
+                <div className="text-xs text-muted-foreground">
+                  {isLoadingCampaigns ? 'Loading...' : 'Total deliverables planned'}
+                </div>
               </div>
             </Card>
 
@@ -751,15 +833,19 @@ export default function BrandDashboard() {
                 </div>
               </div>
               <div className="mt-3">
-                <div className="text-2xl font-bold">3,456</div>
-                <div className="text-sm font-medium text-foreground">Budget Used</div>
-                <div className="text-xs text-muted-foreground">In thousands</div>
+                <div className="text-2xl font-bold">
+                  {isLoadingCampaigns ? '...' : `${(dashboardStats.totalBudget / 1000000).toFixed(1)}M`}
+                </div>
+                <div className="text-sm font-medium text-foreground">Budget Allocated</div>
+                <div className="text-xs text-muted-foreground">
+                  {isLoadingCampaigns ? 'Loading...' : 'Total campaign budget (Rp)'}
+                </div>
               </div>
             </Card>
           </div>
 
           {/* API Status Checker */}
-          <APIStatusChecker />
+          {/* <APIStatusChecker /> */}
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList>
@@ -913,12 +999,22 @@ export default function BrandDashboard() {
                     <div className="space-y-4">
                       {/* Calendar Header */}
                       <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold">March 2025</h3>
+                        <h3 className="text-lg font-semibold">
+                          {calendarData.monthName} {calendarData.year}
+                        </h3>
                         <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => navigateCalendar('prev')}
+                          >
                             ← Previous
                           </Button>
-                          <Button variant="outline" size="sm">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => navigateCalendar('next')}
+                          >
                             Next →
                           </Button>
                         </div>
@@ -934,44 +1030,39 @@ export default function BrandDashboard() {
                         ))}
                         
                         {/* Calendar Days */}
-                        {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-                          <div key={day} className="relative p-2 text-sm border rounded hover:bg-muted transition-colors min-h-[60px]">
-                            <span className="font-medium">{day}</span>
-                            {/* Campaign markers */}
-                            {day === 15 && (
-                              <div className="absolute bottom-1 left-1 right-1">
-                                <div className="bg-primary/20 text-primary text-xs px-1 py-0.5 rounded truncate">
-                                  Skincare Launch
+                        {Array.from({ length: calendarData.daysInMonth }, (_, i) => i + 1).map((day) => {
+                          const dayEvents = calendarData.campaignEvents[day] || []
+                          return (
+                            <div key={day} className="relative p-2 text-sm border rounded hover:bg-muted transition-colors min-h-[60px]">
+                              <span className="font-medium">{day}</span>
+                              {/* Dynamic Campaign markers */}
+                              {dayEvents.map((event, index) => (
+                                <div key={index} className="absolute bottom-1 left-1 right-1" style={{ bottom: `${1 + index * 16}px` }}>
+                                  <div className={`text-xs px-1 py-0.5 rounded truncate ${
+                                    event.type === 'launch' 
+                                      ? 'bg-primary/20 text-primary' 
+                                      : event.type === 'deadline'
+                                      ? 'bg-green-100 text-green-700'
+                                      : 'bg-amber-100 text-amber-700'
+                                  }`}>
+                                    {event.title}
+                                  </div>
                                 </div>
-                              </div>
-                            )}
-                            {day === 20 && (
-                              <div className="absolute bottom-1 left-1 right-1">
-                                <div className="bg-green-100 text-green-700 text-xs px-1 py-0.5 rounded truncate">
-                                  Content Due
-                                </div>
-                              </div>
-                            )}
-                            {day === 25 && (
-                              <div className="absolute bottom-1 left-1 right-1">
-                                <div className="bg-amber-100 text-amber-700 text-xs px-1 py-0.5 rounded truncate">
-                                  Ramadan Campaign
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                              ))}
+                            </div>
+                          )
+                        })}
                       </div>
 
                       {/* Legend */}
                       <div className="flex items-center space-x-4 text-xs">
                         <div className="flex items-center space-x-1">
                           <div className="w-3 h-3 bg-primary/20 rounded"></div>
-                          <span>Campaign Launch</span>
+                          <span>Campaign Launch (In Progress)</span>
                         </div>
                         <div className="flex items-center space-x-1">
                           <div className="w-3 h-3 bg-green-100 rounded"></div>
-                          <span>Content Deadline</span>
+                          <span>Content Deadline (Upcoming)</span>
                         </div>
                         <div className="flex items-center space-x-1">
                           <div className="w-3 h-3 bg-amber-100 rounded"></div>
