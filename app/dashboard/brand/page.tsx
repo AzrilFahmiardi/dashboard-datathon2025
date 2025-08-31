@@ -359,7 +359,7 @@ export default function BrandDashboard() {
                     </div>
                     
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      Beauty enthusiast, skincare expert, authentic product reviewer dengan focus pada natural skincare dan anti-aging...
+                      {campaignDetail.influencer_persona || "Beauty enthusiast, skincare expert, authentic product reviewer dengan focus pada natural skincare dan anti-aging..."}
                     </p>
                   </CardContent>
                 </Card>
