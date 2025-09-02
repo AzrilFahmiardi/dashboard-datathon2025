@@ -52,7 +52,7 @@ pnpm dev
 - **Brand Account**: `aqua@gmail.com` / `aqua123`
 
 ### API Status:
-- ✅ **Live API**: https://influensure-api.onrender.com
+- ✅ **Live API**: https://datathon-api.onrender.com/
 - ✅ **Firebase Auth**: Configured and ready
 - ✅ **Data**: Real influencer dataset included
 
@@ -100,7 +100,7 @@ NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=590506901509
 NEXT_PUBLIC_FIREBASE_APP_ID=1:590506901509:web:7b43a4c8c4b6ac8919a9e8
 
 # API Configuration - Endpoint AI Recommendation Engine
-NEXT_PUBLIC_API_BASE_URL=https://influensure-api.onrender.com
+NEXT_PUBLIC_API_BASE_URL=https://datathon-api.onrender.com/
 ```
 
 **📋 Note untuk Juri/Reviewer:**
@@ -187,7 +187,7 @@ Project ini dapat berintegrasi dengan external recommendation API:
 API endpoint production yang sudah terdeploy:
 
 ```bash
-NEXT_PUBLIC_API_BASE_URL=https://influensure-api.onrender.com
+NEXT_PUBLIC_API_BASE_URL=https://datathon-api.onrender.com/
 ```
 
 **Status API untuk Evaluasi:**
