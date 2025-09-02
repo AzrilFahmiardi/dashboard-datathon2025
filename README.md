@@ -23,15 +23,49 @@ Influensure adalah platform web yang membantu brand menemukan influencer yang te
 - **ESLint** - Code linting
 - **PostCSS** - CSS processing
 
-## Prerequisites
+## 🎯 Untuk Juri Lomba & Testing
+
+Project ini sudah dikonfigurasi dengan data dan credentials yang siap pakai untuk keperluan evaluasi:
+
+### Quick Start untuk Evaluator:
+
+```bash
+# 1. Clone repository
+git clone https://github.com/AzrilFahmiardi/dashboard-datathon2025.git
+cd dashboard-datathon2025
+
+# 2. Install dependencies
+npm install -g pnpm
+pnpm install
+
+# 3. Copy environment file (credentials sudah disediakan)
+cp .env.example .env.local
+
+# 4. Run development server
+pnpm dev
+
+# 5. Open browser
+# http://localhost:3000
+```
+
+### Demo Accounts:
+- **Brand Account**: `aqua@demo.com` / `aqua123`
+
+### API Status:
+- ✅ **Live API**: https://influensure-api.onrender.com
+- ✅ **Firebase Auth**: Configured and ready
+- ✅ **Data**: Real influencer dataset included
+
+## 📋 Prerequisites
 
 Sebelum menjalankan project ini, pastikan Anda memiliki:
+
 
 - **Node.js** (version 18 atau lebih baru)
 - **pnpm** package manager
 - **Git** untuk cloning repository
-- **Firebase project** untuk authentication (optional)
-- **API Server** untuk influencer recommendations (optional)
+
+**Note**: Firebase dan API sudah dikonfigurasi, tidak perlu setup tambahan untuk testing.
 
 ## Installation & Setup
 
@@ -57,17 +91,22 @@ pnpm install
 Buat file `.env.local` di root directory:
 
 ```bash
-# Firebase Configuration (Optional - untuk authentication)
-NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+# Firebase Configuration - Real credentials untuk keperluan lomba/judging
+NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyDMsIDy5WOIr37gSPqWCPF1S0x6V-R8cFY
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=influensure-dashboard.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=influensure-dashboard
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=influensure-dashboard.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=590506901509
+NEXT_PUBLIC_FIREBASE_APP_ID=1:590506901509:web:7b43a4c8c4b6ac8919a9e8
 
-# API Configuration (Optional - untuk recommendation engine)
-NEXT_PUBLIC_API_BASE_URL=http://localhost:5000
+# API Configuration - Endpoint AI Recommendation Engine
+NEXT_PUBLIC_API_BASE_URL=https://influensure-api.onrender.com
 ```
+
+**📋 Note untuk Juri/Reviewer:**
+- Credentials Firebase di atas adalah data asli yang dapat digunakan untuk testing
+- API endpoint sudah terdeploy dan siap untuk evaluasi
+- Tidak perlu setup tambahan - langsung bisa dijalankan untuk demo
 
 ### 4. Run Development Server
 
@@ -145,11 +184,20 @@ Project ini dapat berintegrasi dengan external recommendation API:
 
 ### API Configuration
 
-Set environment variable untuk API base URL:
+API endpoint production yang sudah terdeploy:
 
 ```bash
-NEXT_PUBLIC_API_BASE_URL=http://your-api-server:5000
+NEXT_PUBLIC_API_BASE_URL=https://influensure-api.onrender.com
 ```
+
+**Status API untuk Evaluasi:**
+- ✅ **Health Check**: GET `/api/health`
+- ✅ **Data Status**: GET `/api/data-status` 
+- ✅ **Validate Brief**: POST `/api/validate-brief`
+- ✅ **AI Recommendations**: POST `/api/recommend-influencers`
+- ✅ **Adaptive Weights**: POST `/api/adaptive-weights`
+
+API sudah live dan dapat diakses langsung untuk testing.
 
 
 ### Campaign Brief Format
