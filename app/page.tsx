@@ -15,7 +15,7 @@ export default function LandingPage() {
               <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
                 <span className="text-primary-foreground font-bold text-lg">I</span>
               </div>
-              <span className="text-xl font-bold text-foreground">InfluenceHub</span>
+              <span className="text-xl font-bold text-foreground">Influensure</span>
             </div>
 
             <nav className="hidden md:flex items-center space-x-8">
@@ -254,7 +254,7 @@ export default function LandingPage() {
                 <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
                   <span className="text-primary-foreground font-bold text-lg">I</span>
                 </div>
-                <span className="text-xl font-bold text-foreground">InfluenceHub</span>
+                <span className="text-xl font-bold text-foreground">Influensure</span>
               </div>
               <p className="text-muted-foreground">
                 Platform terdepan untuk menghubungkan brand dengan influencer terbaik di Indonesia
@@ -326,7 +326,7 @@ export default function LandingPage() {
           </div>
 
           <div className="border-t border-border mt-8 pt-8 text-center text-muted-foreground">
-            <p>&copy; 2025 InfluenceHub. All rights reserved.</p>
+            <p>&copy; 2025 Influensure. All rights reserved.</p>
           </div>
         </div>
       </footer>

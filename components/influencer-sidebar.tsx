@@ -46,7 +46,7 @@ export function InfluencerSidebar() {
           <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
             <span className="text-primary-foreground font-bold text-lg">I</span>
           </div>
-          <span className="text-xl font-bold text-sidebar-foreground">InfluenceHub</span>
+          <span className="text-xl font-bold text-sidebar-foreground">Influensure</span>
         </div>
       </div>
 

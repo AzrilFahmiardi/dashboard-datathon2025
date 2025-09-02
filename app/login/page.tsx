@@ -16,7 +16,7 @@ export default function LoginPage() {
             <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
               <span className="text-primary-foreground font-bold text-xl">I</span>
             </div>
-            <span className="text-2xl font-bold text-foreground">InfluenceHub</span>
+            <span className="text-2xl font-bold text-foreground">Influensure</span>
           </div>
 
           <h1 className="text-2xl font-bold text-foreground mb-2">Masuk ke Akun Anda</h1>

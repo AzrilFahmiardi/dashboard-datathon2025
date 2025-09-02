@@ -6,7 +6,7 @@ import { AuthProvider } from '@/contexts/auth-context'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'InfluenceHub',
+  title: 'Influensure',
   description: 'Membbantu brand menemukan inflluencer yang tepat untuk campaign mereka',
 }
 
