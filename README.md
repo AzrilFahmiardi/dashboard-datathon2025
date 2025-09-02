@@ -49,7 +49,7 @@ pnpm dev
 ```
 
 ### Demo Accounts:
-- **Brand Account**: `aqua@demo.com` / `aqua123`
+- **Brand Account**: `aqua@gmail.com` / `aqua123`
 
 ### API Status:
 - ✅ **Live API**: https://influensure-api.onrender.com
