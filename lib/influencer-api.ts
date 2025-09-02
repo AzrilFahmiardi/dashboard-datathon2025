@@ -213,23 +213,90 @@ class InfluencerRecommendationAPI {
   ): Promise<ApiResponse> {
     const { adaptive_weights = true, include_insights = true } = options;
     
+    console.log('🔌 Connecting to API at:', this.baseURL)
+    console.log('📋 Brief summary:', {
+      brief_id: brief.brief_id,
+      product_name: brief.product_name,
+      total_influencer: brief.total_influencer,
+      budget: brief.budget
+    })
+    
     const url = new URL(`${this.baseURL}/api/recommend-influencers`);
     url.searchParams.append('adaptive_weights', adaptive_weights.toString());
     url.searchParams.append('include_insights', include_insights.toString());
 
-    const response = await fetch(url.toString(), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(brief),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API request failed: ${response.statusText}`);
+    console.log('🌐 Full API URL:', url.toString())
+
+    try {
+      const response = await fetch(url.toString(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(brief),
+      });
+      
+      console.log('📡 API Response status:', response.status, response.statusText)
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('❌ API Error response:', errorText)
+        
+        // Parse error text to extract useful information
+        let errorDetail = errorText
+        try {
+          const errorJson = JSON.parse(errorText)
+          if (errorJson.error) {
+            errorDetail = errorJson.error
+          }
+        } catch (e) {
+          // Keep original error text if not JSON
+        }
+        
+        // Provide more specific error messages
+        if (errorDetail.includes('JSON serializable')) {
+          throw new Error('API server encountered a data serialization error. This is likely a server-side issue with numpy data types. Please contact the API administrator.')
+        } else if (errorDetail.includes('Internal server error')) {
+          throw new Error(`Server internal error: ${errorDetail}. Please try again or contact support.`)
+        } else {
+          throw new Error(`API request failed: ${response.statusText}. Details: ${errorDetail}`)
+        }
+      }
+      
+      const result = await response.json()
+      console.log('✅ API Success response preview:', {
+        status: result.status,
+        recommendationsCount: result.recommendations?.length || 0,
+        timestamp: result.timestamp
+      })
+      
+      // Validate the response structure
+      if (!result.status || result.status !== 'success') {
+        throw new Error(`API returned invalid status: ${result.status || 'unknown'}`)
+      }
+      
+      if (!result.recommendations || !Array.isArray(result.recommendations)) {
+        throw new Error('API response missing recommendations data')
+      }
+      
+      return result
+      
+    } catch (error: any) {
+      // Handle network errors
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        console.error('🚫 Network Error:', error.message)
+        throw new Error('Cannot connect to API server. Please ensure the API is running on ' + this.baseURL)
+      }
+      
+      // Re-throw our custom errors
+      if (error.message.includes('API') || error.message.includes('server')) {
+        throw error
+      }
+      
+      // Handle unexpected errors
+      console.error('🔥 Unexpected Error:', error)
+      throw new Error(`Unexpected error occurred: ${error.message}`)
     }
-    
-    return response.json();
   }
 
   async getInfluencerInsight(username: string): Promise<any> {

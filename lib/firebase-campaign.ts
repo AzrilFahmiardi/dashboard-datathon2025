@@ -244,6 +244,13 @@ class FirebaseCampaignService {
   // Menyimpan rekomendasi AI ke campaign
   async saveRecommendations(briefId: string, recommendationData: any): Promise<void> {
     try {
+      console.log('Saving recommendations for brief:', briefId)
+      console.log('Recommendation data structure:', {
+        status: recommendationData.status,
+        recommendationsCount: recommendationData.recommendations?.length || 0,
+        hasMetadata: !!recommendationData.metadata
+      })
+
       const campaign = await this.getCampaignByBriefId(briefId)
       if (!campaign || !campaign.id) {
         throw new Error('Campaign not found')
@@ -255,6 +262,8 @@ class FirebaseCampaignService {
         recommendation_data: recommendationData,
         updated_at: Timestamp.now()
       })
+      
+      console.log('Successfully saved recommendations for brief:', briefId)
     } catch (error) {
       console.error('Error saving recommendations:', error)
       throw new Error('Failed to save recommendations')

@@ -12,10 +12,11 @@ import { Progress } from "@/components/ui/progress"
 import { BrandSidebar } from "@/components/brand-sidebar"
 import { CreateCampaignModal } from "@/components/create-campaign-modal"
 import { CampaignResults } from "@/components/campaign-results"
+import { APIStatusChecker } from "@/components/api-status-checker"
 import { firebaseCampaignService, type CampaignData } from "@/lib/firebase-campaign"
+import { influencerAPI, type ApiResponse } from "@/lib/influencer-api"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "react-hot-toast"
-import type { ApiResponse } from "@/lib/influencer-api"
 import { 
   Users, 
   Calendar, 
@@ -30,7 +31,9 @@ import {
   Heart,
   MessageCircle,
   MoreHorizontal,
-  Loader2
+  Loader2,
+  RefreshCw,
+  Sparkles
 } from "lucide-react"
 
 export default function MyCampaignsPage() {
@@ -43,6 +46,7 @@ export default function MyCampaignsPage() {
   const [showResults, setShowResults] = useState(false)
   const [campaigns, setCampaigns] = useState<CampaignData[]>([])
   const [isLoadingCampaigns, setIsLoadingCampaigns] = useState(true)
+  const [isGeneratingRecommendations, setIsGeneratingRecommendations] = useState(false)
 
   // Load campaigns from Firebase on component mount
   useEffect(() => {
@@ -72,6 +76,107 @@ export default function MyCampaignsPage() {
     // Add new campaign to state
     setCampaigns(prev => [campaign, ...prev])
     toast.success('Campaign berhasil dibuat!')
+  }
+
+  // Helper function to convert campaign data to API format
+  const convertCampaignToApiFormat = (campaign: CampaignData) => {
+    return {
+      brief_id: campaign.brief_id,
+      brand_name: campaign.brand_name,
+      industry: campaign.industry,
+      product_name: campaign.product_name,
+      overview: campaign.overview,
+      usp: campaign.usp,
+      marketing_objective: campaign.marketing_objective,
+      target_goals: campaign.target_goals,
+      timing_campaign: campaign.timing_campaign,
+      audience_preference: campaign.audience_preference,
+      influencer_persona: campaign.influencer_persona,
+      total_influencer: campaign.total_influencer,
+      niche: campaign.niche,
+      location_prior: campaign.location_prior,
+      esg_allignment: campaign.esg_allignment,
+      budget: campaign.budget,
+      output: campaign.output,
+      risk_tolerance: campaign.risk_tolerance
+    }
+  }
+
+  // Handler untuk generate recommendations
+  const handleGenerateRecommendations = async (campaign: CampaignData) => {
+    setIsGeneratingRecommendations(true)
+    try {
+      console.log('🚀 Starting recommendation generation for campaign:', campaign.brief_id)
+      toast.loading('Generating AI recommendations...', { duration: 1000 })
+      
+      // Convert campaign data to API format
+      const apiPayload = convertCampaignToApiFormat(campaign)
+      console.log('📦 API Payload prepared:', {
+        brief_id: apiPayload.brief_id,
+        product_name: apiPayload.product_name,
+        total_influencer: apiPayload.total_influencer,
+        budget: apiPayload.budget,
+        niche: apiPayload.niche
+      })
+      
+      // Call real API endpoint
+      console.log('📡 Calling API endpoint...')
+      const apiResponse: ApiResponse = await influencerAPI.recommendInfluencers(apiPayload, {
+        adaptive_weights: true,
+        include_insights: true
+      })
+      
+      console.log('✅ API Response received:', {
+        status: apiResponse.status,
+        recommendationsCount: apiResponse.recommendations?.length || 0,
+        hasMetadata: !!apiResponse.metadata
+      })
+      
+      // Validate API response
+      if (!apiResponse || apiResponse.status !== 'success') {
+        throw new Error('API returned invalid response')
+      }
+
+      if (!apiResponse.recommendations || apiResponse.recommendations.length === 0) {
+        throw new Error('No influencer recommendations found')
+      }
+      
+      // Save API recommendations to Firebase
+      console.log('💾 Saving recommendations to Firebase...')
+      await firebaseCampaignService.saveRecommendations(campaign.brief_id, apiResponse)
+      
+      // Update campaigns state
+      setCampaigns(prev => prev.map(c => 
+        c.brief_id === campaign.brief_id 
+          ? { ...c, has_recommendations: true, recommendation_data: apiResponse }
+          : c
+      ))
+      
+      console.log('🎉 Recommendations generated successfully!')
+      toast.success(`Successfully generated ${apiResponse.recommendations.length} influencer recommendations!`)
+      
+      // Show the results
+      setCampaignResults(apiResponse)
+      setShowResults(true)
+    } catch (error: any) {
+      console.error('❌ Error generating recommendations:', error)
+      
+      // Provide specific error messages
+      let errorMessage = 'Failed to generate recommendations'
+      if (error.message.includes('connect')) {
+        errorMessage = 'Cannot connect to AI API. Please ensure the API server is running.'
+      } else if (error.message.includes('API returned invalid response')) {
+        errorMessage = 'AI API returned invalid response. Please try again.'
+      } else if (error.message.includes('No influencer recommendations found')) {
+        errorMessage = 'No suitable influencers found for your criteria. Try adjusting your requirements.'
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+      
+      toast.error(errorMessage)
+    } finally {
+      setIsGeneratingRecommendations(false)
+    }
   }
 
   // Handler untuk kembali ke campaigns dari results
@@ -253,12 +358,35 @@ export default function MyCampaignsPage() {
             Edit Campaign
           </Button>
           {campaign.has_recommendations ? (
-            <Button variant="outline" size="sm">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                setCampaignResults(campaign.recommendation_data)
+                setShowResults(true)
+              }}
+            >
               View AI Recommendations
             </Button>
           ) : (
-            <Button variant="outline" size="sm">
-              Generate Recommendations
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => handleGenerateRecommendations(campaign)}
+              disabled={isGeneratingRecommendations}
+              className="flex items-center gap-2"
+            >
+              {isGeneratingRecommendations ? (
+                <>
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3 h-3" />
+                  Generate Recommendations
+                </>
+              )}
             </Button>
           )}
         </div>
@@ -299,6 +427,11 @@ export default function MyCampaignsPage() {
               <Plus className="w-4 h-4 mr-2" />
               Create Campaign
             </Button>
+          </div>
+
+          {/* API Status Checker */}
+          <div className="mb-6">
+            <APIStatusChecker />
           </div>
 
           {/* Stats Overview */}

@@ -1,12 +1,13 @@
 "use client"
 
-import React from 'react'
+import React, { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
+import { toast } from 'react-hot-toast'
 import { 
   TrendingUp, 
   Users, 
@@ -20,7 +21,8 @@ import {
   ArrowUpRight,
   Zap,
   CheckCircle,
-  Info
+  Info,
+  Activity
 } from 'lucide-react'
 import type { ApiResponse, InfluencerRecommendation } from '@/lib/influencer-api'
 
@@ -55,6 +57,7 @@ const formatNumber = (num: number) => {
 }
 
 export function CampaignResults({ data, onBack }: CampaignResultsProps) {
+  const [showApiResponse, setShowApiResponse] = useState(false) // State for API response toggle
   const { brief, recommendations, metadata } = data
 
   return (
@@ -65,12 +68,119 @@ export function CampaignResults({ data, onBack }: CampaignResultsProps) {
           <h1 className="text-2xl font-bold text-foreground">Campaign Recommendations</h1>
           <p className="text-muted-foreground">AI-powered influencer recommendations for your campaign</p>
         </div>
-        {onBack && (
-          <Button variant="outline" onClick={onBack}>
-            Back to Dashboard
+        <div className="flex items-center space-x-3">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setShowApiResponse(!showApiResponse)}
+            className="text-xs"
+          >
+            {showApiResponse ? 'Hide' : 'Show'} API Response
           </Button>
-        )}
+          {onBack && (
+            <Button variant="outline" onClick={onBack}>
+              Back to Dashboard
+            </Button>
+          )}
+        </div>
       </div>
+
+      {/* API Response Debug Card - Collapsible */}
+      {showApiResponse && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center">
+              <Activity className="w-5 h-5 mr-2 text-orange-600" />
+              Raw API Response
+              <Badge variant="outline" className="ml-2 text-xs bg-orange-100 text-orange-800 border-orange-300">
+                Debug Mode
+              </Badge>
+            </CardTitle>
+            <CardDescription>
+              Original response from Influencer Recommendation API
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {/* API Metadata */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="text-center p-2 bg-white border rounded">
+                  <div className="text-sm font-bold text-green-600">
+                    {data.status || 'success'}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Status</div>
+                </div>
+                <div className="text-center p-2 bg-white border rounded">
+                  <div className="text-sm font-bold text-blue-600">
+                    {data.recommendations?.length || 0}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Recommendations</div>
+                </div>
+                <div className="text-center p-2 bg-white border rounded">
+                  <div className="text-sm font-bold text-purple-600">
+                    {data.timestamp || 'N/A'}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Timestamp</div>
+                </div>
+              </div>
+
+              {/* JSON Response */}
+              <div className="bg-white border rounded-lg p-4 max-h-96 overflow-y-auto">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-sm font-semibold text-gray-700">JSON Response:</h4>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(JSON.stringify(data, null, 2))
+                      toast.success('API response copied to clipboard!')
+                    }}
+                  >
+                    Copy JSON
+                  </Button>
+                </div>
+                <pre className="text-xs bg-gray-50 p-3 rounded border overflow-x-auto">
+                  <code className="text-gray-700">
+                    {JSON.stringify(data, null, 2)}
+                  </code>
+                </pre>
+              </div>
+
+              {/* Quick Stats */}
+              {metadata && (
+                <div className="bg-white border rounded-lg p-3">
+                  <h4 className="text-sm font-semibold mb-2">API Metadata:</h4>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="font-medium">Adaptive Weights:</span> 
+                      <span className="ml-1 text-green-600">
+                        {metadata.use_adaptive_weights ? '✅ Enabled' : '❌ Disabled'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="font-medium">Include Insights:</span> 
+                      <span className="ml-1 text-green-600">
+                        {metadata.include_insights ? '✅ Enabled' : '❌ Disabled'}
+                      </span>
+                    </div>
+                  </div>
+                  {metadata.scoring_strategy && (
+                    <div className="mt-2 pt-2 border-t">
+                      <span className="text-xs font-medium">Scoring Weights:</span>
+                      <div className="grid grid-cols-2 gap-1 mt-1 text-xs">
+                        <div>Audience Fit: {(metadata.scoring_strategy.audience_fit * 100).toFixed(1)}%</div>
+                        <div>Persona Fit: {(metadata.scoring_strategy.persona_fit * 100).toFixed(1)}%</div>
+                        <div>Performance: {(metadata.scoring_strategy.performance_pred * 100).toFixed(1)}%</div>
+                        <div>Budget Efficiency: {(metadata.scoring_strategy.budget_efficiency * 100).toFixed(1)}%</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Campaign Summary */}
       <Card>
