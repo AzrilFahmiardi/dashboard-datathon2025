@@ -85,6 +85,146 @@ export class GeminiAIService {
       throw error // Re-throw error instead of using fallback
     }
   }
+
+  /**
+   * Generate insights untuk comment behavior analysis
+   */
+  async generateCommentAnalysisInsights(
+    captionBehaviorInsights: string,
+    campaignBrief?: CampaignBrief
+  ): Promise<string> {
+    try {
+      console.log('🧠 Calling comment analysis insights API...')
+      
+      const response = await fetch('/api/generate-insights', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'comment',
+          data: captionBehaviorInsights,
+          campaignBrief
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || `API error: ${response.status}`)
+      }
+
+      const data = await response.json()
+      return data.insights || 'No insights generated'
+    } catch (error) {
+      console.error('❌ Error calling comment insights API:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Generate insights untuk caption analysis
+   */
+  async generateCaptionAnalysisInsights(
+    captionBehaviorInsights: string,
+    campaignBrief?: CampaignBrief
+  ): Promise<string> {
+    try {
+      console.log('🧠 Calling caption analysis insights API...')
+      
+      const response = await fetch('/api/generate-insights', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'caption',
+          data: captionBehaviorInsights,
+          campaignBrief
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || `API error: ${response.status}`)
+      }
+
+      const data = await response.json()
+      return data.insights || 'No insights generated'
+    } catch (error) {
+      console.error('❌ Error calling caption insights API:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Generate insights untuk score breakdown
+   */
+  async generateScoreBreakdownInsights(
+    influencerData: InfluencerData,
+    campaignBrief?: CampaignBrief
+  ): Promise<string> {
+    try {
+      console.log('🧠 Calling score breakdown insights API...')
+      
+      const response = await fetch('/api/generate-insights', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'score',
+          data: influencerData.scores,
+          campaignBrief
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || `API error: ${response.status}`)
+      }
+
+      const data = await response.json()
+      return data.insights || 'No insights generated'
+    } catch (error) {
+      console.error('❌ Error calling score insights API:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Generate insights untuk performance analysis
+   */
+  async generatePerformanceInsights(
+    influencerData: InfluencerData,
+    campaignBrief?: CampaignBrief
+  ): Promise<string> {
+    try {
+      console.log('🧠 Calling performance insights API...')
+      
+      const response = await fetch('/api/generate-insights', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'performance',
+          data: influencerData.performance_metrics,
+          campaignBrief
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || `API error: ${response.status}`)
+      }
+
+      const data = await response.json()
+      return data.insights || 'No insights generated'
+    } catch (error) {
+      console.error('❌ Error calling performance insights API:', error)
+      throw error
+    }
+  }
 }
 
 export const geminiAIService = new GeminiAIService()

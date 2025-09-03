@@ -80,6 +80,11 @@ export default function BrandDashboard() {
   const [influencerStrategies, setInfluencerStrategies] = useState<{[key: string]: string}>({}) // Store generated strategies
   const [isGeneratingStrategy, setIsGeneratingStrategy] = useState<{[key: string]: boolean}>({}) // Track strategy generation status
   const [strategyErrors, setStrategyErrors] = useState<{[key: string]: string}>({}) // Track strategy generation errors
+  
+  // State for AI insights
+  const [influencerInsights, setInfluencerInsights] = useState<{[key: string]: any}>({}) // Store AI insights for each section
+  const [isGeneratingInsights, setIsGeneratingInsights] = useState<{[key: string]: boolean}>({}) // Track insights generation status
+  const [insightsErrors, setInsightsErrors] = useState<{[key: string]: string}>({}) // Track insights errors
 
   // Calculate dynamic dashboard stats
   const dashboardStats = {
@@ -453,6 +458,123 @@ export default function BrandDashboard() {
     }
   }
 
+  // Helper function to convert CampaignData to CampaignBrief for Gemini API
+  const convertToCampaignBrief = (campaign?: CampaignData) => {
+    if (!campaign) return undefined
+    
+    return {
+      brand_name: campaign.brand_name,
+      product_name: campaign.product_name,
+      overview: campaign.overview,
+      usp: campaign.usp,
+      industry: campaign.industry,
+      budget: campaign.budget,
+      target_audience: campaign.audience_preference,
+      content_requirements: campaign.output?.content_types?.join(', '),
+      persona: campaign.influencer_persona,
+      marketing_objective: Array.isArray(campaign.marketing_objective) 
+        ? campaign.marketing_objective.join(', ') 
+        : campaign.marketing_objective
+    }
+  }
+
+  // Function to generate AI insights for influencer data sections
+  const generateInfluencerInsights = async (influencer: any, campaign?: CampaignData, sectionType: 'comment' | 'caption' | 'score' | 'performance' = 'comment') => {
+    const insightKey = `${influencer.username}_${sectionType}_insights`
+    
+    // Clear any existing errors for this section
+    setInsightsErrors(prev => {
+      const newErrors = { ...prev }
+      delete newErrors[insightKey]
+      return newErrors
+    })
+
+    // Set loading state
+    setIsGeneratingInsights(prev => ({ ...prev, [insightKey]: true }))
+
+    try {
+      console.log(`🧠 Generating AI insights for ${sectionType} section:`, influencer.username)
+      console.log(`📋 Influencer data available:`, {
+        caption_behavior_insights: !!influencer.caption_behavior_insights,
+        scores: !!influencer.scores,
+        performance_metrics: !!influencer.performance_metrics,
+        insights: !!influencer.insights
+      })
+      
+      // Convert campaign data to appropriate format
+      const campaignBrief = convertToCampaignBrief(campaign)
+      
+      let insights = null
+      
+      switch (sectionType) {
+        case 'comment':
+          if (influencer.caption_behavior_insights) {
+            console.log(`📤 Sending caption_behavior_insights to Gemini for comment analysis`)
+            insights = await geminiAIService.generateCommentAnalysisInsights(influencer.caption_behavior_insights, campaignBrief)
+          } else if (influencer.insights) {
+            console.log(`📤 Fallback: Using general insights for comment analysis`)
+            insights = await geminiAIService.generateCommentAnalysisInsights(influencer.insights, campaignBrief)
+          } else {
+            throw new Error('No caption behavior or general insights available for this influencer')
+          }
+          break
+        case 'caption':
+          if (influencer.caption_behavior_insights) {
+            console.log(`📤 Sending caption_behavior_insights to Gemini for caption analysis`)
+            insights = await geminiAIService.generateCaptionAnalysisInsights(influencer.caption_behavior_insights, campaignBrief)
+          } else if (influencer.insights) {
+            console.log(`📤 Fallback: Using general insights for caption analysis`)
+            insights = await geminiAIService.generateCaptionAnalysisInsights(influencer.insights, campaignBrief)
+          } else {
+            throw new Error('No caption behavior or general insights available for this influencer')
+          }
+          break
+        case 'score':
+          if (influencer.scores) {
+            console.log(`📤 Sending scores to Gemini for score analysis`)
+            insights = await geminiAIService.generateScoreBreakdownInsights(influencer, campaignBrief)
+          } else {
+            throw new Error('Score data not available for this influencer')
+          }
+          break
+        case 'performance':
+          if (influencer.performance_metrics) {
+            console.log(`📤 Sending performance_metrics to Gemini for performance analysis`)
+            insights = await geminiAIService.generatePerformanceInsights(influencer, campaignBrief)
+          } else {
+            throw new Error('Performance metrics not available for this influencer')
+          }
+          break
+      }
+      
+      if (insights) {
+        // Store the generated insights
+        setInfluencerInsights(prev => ({
+          ...prev,
+          [insightKey]: insights
+        }))
+
+        console.log(`✅ ${sectionType} insights generated successfully for:`, influencer.username)
+        return insights
+      } else {
+        throw new Error(`Failed to generate ${sectionType} insights from Gemini AI`)
+      }
+    } catch (error) {
+      console.error(`❌ Error generating ${sectionType} insights:`, error)
+      
+      // Set error state
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      setInsightsErrors(prev => ({
+        ...prev,
+        [insightKey]: `Failed to generate ${sectionType} insights: ${errorMessage}`
+      }))
+      
+      return null
+    } finally {
+      setIsGeneratingInsights(prev => ({ ...prev, [insightKey]: false }))
+    }
+  }
+
   // Helper function to convert campaign data to API format
   const convertCampaignToApiFormat = (campaign: CampaignData) => {
     // Ensure all data types match the API specification exactly
@@ -615,6 +737,32 @@ export default function BrandDashboard() {
         toast.success(`Generated ${successfulStrategies} AI marketing strategies!`)
       } else {
         toast.error('Failed to generate strategies. You can try generating them individually.')
+      }
+
+      // 🧠 AUTO-GENERATE INSIGHTS FOR ALL INFLUENCERS
+      console.log('💡 Auto-generating AI insights for all recommended influencers...')
+      toast.loading('🔍 Generating AI insights for each section...', { duration: 4000 })
+      
+      // Generate insights for all influencers and all sections in parallel
+      const insightPromises = apiResponse.recommendations.flatMap((influencer: any) => [
+        generateInfluencerInsights(influencer, campaign, 'comment'),
+        generateInfluencerInsights(influencer, campaign, 'caption'),
+        generateInfluencerInsights(influencer, campaign, 'score'),
+        generateInfluencerInsights(influencer, campaign, 'performance')
+      ])
+      
+      // Wait for all insights to complete
+      const insightResults = await Promise.allSettled(insightPromises)
+      
+      // Count successful insight generations
+      const successfulInsights = insightResults.filter(result => 
+        result.status === 'fulfilled' && result.value
+      ).length
+      
+      console.log(`✅ Insights generation completed: ${successfulInsights}/${insightPromises.length} successful`)
+      
+      if (successfulInsights > 0) {
+        toast.success(`Generated ${successfulInsights} AI insights across all sections!`)
       }
       
       setSelectedCampaignDetail(campaign.brief_id)
@@ -1532,6 +1680,63 @@ export default function BrandDashboard() {
                                             </div>
                                           )}
 
+                                          {/* AI Insights for Comment Behavior */}
+                                          {(() => {
+                                            const commentInsightKey = `${influencer.username}_comment_insights`
+                                            const commentInsight = influencerInsights[commentInsightKey]
+                                            const isGeneratingCommentInsight = isGeneratingInsights[commentInsightKey]
+                                            const commentInsightError = insightsErrors[commentInsightKey]
+
+                                            return (
+                                              <div className="bg-muted/30 rounded-lg p-4 border border-border">
+                                                <div className="flex items-center justify-between mb-3">
+                                                  <h6 className="font-semibold text-sm flex items-center text-foreground">
+                                                    <Brain className="w-4 h-4 mr-2 text-muted-foreground" />
+                                                    AI Insights - Comment Behavior
+                                                  </h6>
+                                                  <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => generateInfluencerInsights(influencer, campaignDetail, 'comment')}
+                                                    disabled={isGeneratingCommentInsight}
+                                                    className="h-6 px-2 text-xs hover:bg-muted/50"
+                                                  >
+                                                    {isGeneratingCommentInsight ? (
+                                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                                    ) : (
+                                                      <RefreshCw className="w-3 h-3" />
+                                                    )}
+                                                  </Button>
+                                                </div>
+                                                
+                                                {isGeneratingCommentInsight ? (
+                                                  <div className="flex items-center space-x-2 text-muted-foreground text-sm">
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                    <span>Generating AI insights...</span>
+                                                  </div>
+                                                ) : commentInsight ? (
+                                                  <div className="bg-card rounded p-3 border border-border">
+                                                    <p className="text-sm text-foreground leading-relaxed">
+                                                      {commentInsight}
+                                                    </p>
+                                                  </div>
+                                                ) : commentInsightError ? (
+                                                  <div className="bg-muted/20 border border-border rounded p-3">
+                                                    <p className="text-sm text-muted-foreground">
+                                                      {commentInsightError}
+                                                    </p>
+                                                  </div>
+                                                ) : (
+                                                  <div className="bg-muted/20 border border-border rounded p-3">
+                                                    <p className="text-sm text-muted-foreground">
+                                                      Click refresh to generate AI insights for comment behavior analysis
+                                                    </p>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            )
+                                          })()}
+
                                           {/* Fallback - General Comment Examples if no categorized data */}
                                           {(!parsed.relatableExamples && !parsed.viralExamples && !parsed.supportiveExamples) && 
                                            parsed.allCommentExamples && parsed.allCommentExamples.length > 0 && (
@@ -1670,6 +1875,63 @@ export default function BrandDashboard() {
                                             </div>
                                           )}
                                           </div>
+
+                                          {/* AI Insights for Caption Analysis */}
+                                          {(() => {
+                                            const captionInsightKey = `${influencer.username}_caption_insights`
+                                            const captionInsight = influencerInsights[captionInsightKey]
+                                            const isGeneratingCaptionInsight = isGeneratingInsights[captionInsightKey]
+                                            const captionInsightError = insightsErrors[captionInsightKey]
+
+                                            return (
+                                              <div className="bg-muted/30 rounded-lg p-4 border border-border">
+                                                <div className="flex items-center justify-between mb-3">
+                                                  <h6 className="font-semibold text-sm flex items-center text-foreground">
+                                                    <Brain className="w-4 h-4 mr-2 text-muted-foreground" />
+                                                    AI Insights - Caption Analysis
+                                                  </h6>
+                                                  <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => generateInfluencerInsights(influencer, campaignDetail, 'caption')}
+                                                    disabled={isGeneratingCaptionInsight}
+                                                    className="h-6 px-2 text-xs hover:bg-muted/50"
+                                                  >
+                                                    {isGeneratingCaptionInsight ? (
+                                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                                    ) : (
+                                                      <RefreshCw className="w-3 h-3" />
+                                                    )}
+                                                  </Button>
+                                                </div>
+                                                
+                                                {isGeneratingCaptionInsight ? (
+                                                  <div className="flex items-center space-x-2 text-muted-foreground text-sm">
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                    <span>Generating AI insights...</span>
+                                                  </div>
+                                                ) : captionInsight ? (
+                                                  <div className="bg-card rounded p-3 border border-border">
+                                                    <p className="text-sm text-foreground leading-relaxed">
+                                                      {captionInsight}
+                                                    </p>
+                                                  </div>
+                                                ) : captionInsightError ? (
+                                                  <div className="bg-muted/20 border border-border rounded p-3">
+                                                    <p className="text-sm text-muted-foreground">
+                                                      {captionInsightError}
+                                                    </p>
+                                                  </div>
+                                                ) : (
+                                                  <div className="bg-muted/20 border border-border rounded p-3">
+                                                    <p className="text-sm text-muted-foreground">
+                                                      Click refresh to generate AI insights for caption analysis
+                                                    </p>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            )
+                                          })()}
                                         </div>
                                       )
                                     } else {
@@ -1740,6 +2002,63 @@ export default function BrandDashboard() {
                                     <p className="text-sm">Score breakdown not available</p>
                                   </div>
                                 )}
+
+                                {/* AI Insights for Score Breakdown */}
+                                {(() => {
+                                  const scoreInsightKey = `${influencer.username}_score_insights`
+                                  const scoreInsight = influencerInsights[scoreInsightKey]
+                                  const isGeneratingScoreInsight = isGeneratingInsights[scoreInsightKey]
+                                  const scoreInsightError = insightsErrors[scoreInsightKey]
+
+                                  return (
+                                    <div className="bg-muted/30 rounded-lg p-4 border border-border">
+                                      <div className="flex items-center justify-between mb-3">
+                                        <h6 className="font-semibold text-sm flex items-center text-foreground">
+                                          <Brain className="w-4 h-4 mr-2 text-muted-foreground" />
+                                          AI Insights - Score Analysis
+                                        </h6>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => generateInfluencerInsights(influencer, campaignDetail, 'score')}
+                                          disabled={isGeneratingScoreInsight}
+                                          className="h-6 px-2 text-xs hover:bg-muted/50"
+                                        >
+                                          {isGeneratingScoreInsight ? (
+                                            <Loader2 className="w-3 h-3 animate-spin" />
+                                          ) : (
+                                            <RefreshCw className="w-3 h-3" />
+                                          )}
+                                        </Button>
+                                      </div>
+                                      
+                                      {isGeneratingScoreInsight ? (
+                                        <div className="flex items-center space-x-2 text-muted-foreground text-sm">
+                                          <Loader2 className="w-4 h-4 animate-spin" />
+                                          <span>Generating AI insights...</span>
+                                        </div>
+                                      ) : scoreInsight ? (
+                                        <div className="bg-card rounded p-3 border border-border">
+                                          <p className="text-sm text-foreground leading-relaxed">
+                                            {scoreInsight}
+                                          </p>
+                                        </div>
+                                      ) : scoreInsightError ? (
+                                        <div className="bg-muted/20 border border-border rounded p-3">
+                                          <p className="text-sm text-muted-foreground">
+                                            {scoreInsightError}
+                                          </p>
+                                        </div>
+                                      ) : (
+                                        <div className="bg-muted/20 border border-border rounded p-3">
+                                          <p className="text-sm text-muted-foreground">
+                                            Click refresh to generate AI insights for score breakdown
+                                          </p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )
+                                })()}
                               </div>
                             </TabsContent>
                             
@@ -1779,6 +2098,63 @@ export default function BrandDashboard() {
                                     <p className="text-sm">No performance metrics available</p>
                                   </div>
                                 )}
+
+                                {/* AI Insights for Performance */}
+                                {(() => {
+                                  const performanceInsightKey = `${influencer.username}_performance_insights`
+                                  const performanceInsight = influencerInsights[performanceInsightKey]
+                                  const isGeneratingPerformanceInsight = isGeneratingInsights[performanceInsightKey]
+                                  const performanceInsightError = insightsErrors[performanceInsightKey]
+
+                                  return (
+                                    <div className="bg-muted/30 rounded-lg p-4 border border-border">
+                                      <div className="flex items-center justify-between mb-3">
+                                        <h6 className="font-semibold text-sm flex items-center text-foreground">
+                                          <Brain className="w-4 h-4 mr-2 text-muted-foreground" />
+                                          AI Insights - Performance Analysis
+                                        </h6>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => generateInfluencerInsights(influencer, campaignDetail, 'performance')}
+                                          disabled={isGeneratingPerformanceInsight}
+                                          className="h-6 px-2 text-xs hover:bg-muted/50"
+                                        >
+                                          {isGeneratingPerformanceInsight ? (
+                                            <Loader2 className="w-3 h-3 animate-spin" />
+                                          ) : (
+                                            <RefreshCw className="w-3 h-3" />
+                                          )}
+                                        </Button>
+                                      </div>
+                                      
+                                      {isGeneratingPerformanceInsight ? (
+                                        <div className="flex items-center space-x-2 text-muted-foreground text-sm">
+                                          <Loader2 className="w-4 h-4 animate-spin" />
+                                          <span>Generating AI insights...</span>
+                                        </div>
+                                      ) : performanceInsight ? (
+                                        <div className="bg-card rounded p-3 border border-border">
+                                          <p className="text-sm text-foreground leading-relaxed">
+                                            {performanceInsight}
+                                          </p>
+                                        </div>
+                                      ) : performanceInsightError ? (
+                                        <div className="bg-muted/20 border border-border rounded p-3">
+                                          <p className="text-sm text-muted-foreground">
+                                            {performanceInsightError}
+                                          </p>
+                                        </div>
+                                      ) : (
+                                        <div className="bg-muted/20 border border-border rounded p-3">
+                                          <p className="text-sm text-muted-foreground">
+                                            Click refresh to generate AI insights for performance analysis
+                                          </p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )
+                                })()}
                               </div>
                             </TabsContent>
                             
