@@ -193,12 +193,24 @@ export default function BrandDashboard() {
     toast.success('Campaign berhasil dibuat!')
   }
 
-  // Helper function to parse and format strategy text with enhanced visual formatting
+  // Helper function to parse and format strategy text - simplified version with raw content
   const formatStrategyText = (strategy: string) => {
     if (!strategy) return null
 
     // Split strategy into sections based on emoji headers
     const sections = strategy.split(/(?=🎯|📈|💡|⚠️|💰)/).filter(section => section.trim())
+
+    // Map emojis to Lucide icons
+    const getIconForSection = (emoji: string) => {
+      switch (emoji) {
+        case '🎯': return <Target className="w-4 h-4 text-blue-500" />
+        case '📈': return <TrendingUp className="w-4 h-4 text-green-500" />
+        case '💡': return <Zap className="w-4 h-4 text-yellow-500" />
+        case '⚠️': return <AlertTriangle className="w-4 h-4 text-orange-500" />
+        case '💰': return <DollarSign className="w-4 h-4 text-emerald-500" />
+        default: return <Sparkles className="w-4 h-4 text-purple-500" />
+      }
+    }
 
     return sections.map((section, index) => {
       const lines = section.trim().split('\n').filter(line => line.trim())
@@ -207,68 +219,55 @@ export default function BrandDashboard() {
       const headerLine = lines[0]
       const contentLines = lines.slice(1).join('\n')
 
-      // Extract emoji and title
-      const emojiMatch = headerLine.match(/^(🎯|📈|💡|⚠️|💰)\s*\*\*(.*?)\*\*:?/)
-      if (!emojiMatch) return null
+      let emoji = ''
+      let title = ''
 
-      const emoji = emojiMatch[1]
-      const title = emojiMatch[2]
-
-      // Determine section color theme - simplified minimal theme
-      const getSectionTheme = (emoji: string) => {
-        switch (emoji) {
-          case '🎯': return { bg: 'bg-muted/30', border: 'border-muted', text: 'text-foreground' }
-          case '📈': return { bg: 'bg-muted/30', border: 'border-muted', text: 'text-foreground' }
-          case '💡': return { bg: 'bg-muted/30', border: 'border-muted', text: 'text-foreground' }
-          case '⚠️': return { bg: 'bg-muted/30', border: 'border-muted', text: 'text-foreground' }
-          case '💰': return { bg: 'bg-muted/30', border: 'border-muted', text: 'text-foreground' }
-          default: return { bg: 'bg-muted/30', border: 'border-muted', text: 'text-foreground' }
+      // First try to match format with bold markers: 🎯 **Title**:
+      const boldMatch = headerLine.match(/^(🎯|📈|💡|⚠️|💰)\s*\*\*(.+?)\*\*:?\s*$/)
+      if (boldMatch) {
+        emoji = boldMatch[1]
+        title = boldMatch[2].trim()
+      } else {
+        // Fallback: try to extract emoji and text without bold markers: 🎯 Title:
+        const simpleMatch = headerLine.match(/^(🎯|📈|💡|⚠️|💰)\s*(.+?):\s*$/)
+        if (simpleMatch) {
+          emoji = simpleMatch[1]
+          title = simpleMatch[2].trim().replace(/\*\*/g, '') // Remove any bold markers
+        } else {
+          // Last fallback: extract everything after emoji
+          const fallbackMatch = headerLine.match(/^(🎯|📈|💡|⚠️|💰)\s*(.+)$/)
+          if (fallbackMatch) {
+            emoji = fallbackMatch[1]
+            title = fallbackMatch[2].trim().replace(/\*\*/g, '').replace(/:$/, '') // Remove bold markers and trailing colon
+          } else {
+            return null
+          }
         }
       }
 
-      const theme = getSectionTheme(emoji)
-
-      // Format content with subtle highlighting that respects the theme
-      const formatContent = (text: string) => {
-        return text
-          // Bold important phrases in parentheses - subtle background
-          .replace(/\(([^)]+)\)/g, '<span class="font-medium text-foreground bg-muted/40 px-1 py-0.5 rounded text-xs">$1</span>')
-          // Bold product names and important terms
-          .replace(/\b([A-Z][a-z]+\s[A-Z][a-z]+(?:\s[A-Z][a-z]+)*)\b/g, '<span class="font-semibold text-foreground">$1</span>')
-          // Highlight percentages and numbers - minimal styling
-          .replace(/\b(\d+(?:\.\d+)?%)\b/g, '<span class="font-semibold text-foreground border border-border px-1 py-0.5 rounded text-xs">$1</span>')
-          .replace(/\bRp\s?([\d,.]+[MK]?)\b/g, '<span class="font-semibold text-foreground border border-border px-1 py-0.5 rounded text-xs">Rp $1</span>')
-          // Bold key marketing terms without colors
-          .replace(/\b(CTA|Call-to-Action|engagement|konversi|reach|brand awareness|audience|targeting|persona)\b/gi, '<span class="font-semibold text-foreground">$1</span>')
-          // Bold platform names
-          .replace(/\b(Instagram|TikTok|YouTube|Facebook|Twitter|Reels|Feeds|Stories|Post|Video)\b/gi, '<span class="font-semibold text-foreground">$1</span>')
-          // Subtle highlight for time references
-          .replace(/\b(jam \d+:\d+-\d+:\d+|pagi|siang|sore|malam)\b/gi, '<span class="font-medium text-foreground">$1</span>')
-      }
+      const IconComponent = getIconForSection(emoji)
 
       return (
-        <div key={index} className={`${theme.bg} ${theme.border} border rounded-lg p-4 space-y-3 group hover:shadow-sm transition-all duration-200`}>
+        <div key={index} className="bg-muted/30 border border-muted rounded-lg p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <span className="text-lg">{emoji}</span>
-              <h6 className={`font-bold text-sm ${theme.text}`}>{title}</h6>
+              {IconComponent}
+              <h6 className="font-bold text-sm text-foreground">{title}</h6>
             </div>
-            {/* Quick Action Button */}
             <button 
-              className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 hover:bg-muted/50 rounded"
+              className="p-1 hover:bg-muted/50 rounded"
               title="Copy section"
               onClick={() => {
-                navigator.clipboard.writeText(`${emoji} ${title}\n${contentLines}`)
-                toast.success('Strategy section copied to clipboard!')
+                navigator.clipboard.writeText(`${title}\n${contentLines}`)
+                toast.success('Strategy section copied!')
               }}
             >
               <Copy className="w-3 h-3 text-muted-foreground hover:text-foreground" />
             </button>
           </div>
-          <div 
-            className={`text-sm ${theme.text} leading-relaxed`}
-            dangerouslySetInnerHTML={{ __html: formatContent(contentLines) }}
-          />
+          <div className="text-sm text-foreground leading-relaxed whitespace-pre-line">
+            {contentLines}
+          </div>
         </div>
       )
     }).filter(Boolean)
@@ -1781,12 +1780,7 @@ export default function BrandDashboard() {
                                                   <div className="text-xs text-muted-foreground">High-Value Rate</div>
                                                 </div>
                                               </div>
-                                              {parsed.commentQuality.highValue < 20 && (
-                                                <div className="text-xs text-orange-600 bg-orange-50 p-2 rounded flex items-center">
-                                                  <AlertTriangle className="w-3 h-3 mr-1" />
-                                                  Low high-value rate indicates mostly praise or passive engagement
-                                                </div>
-                                              )}
+                                            
                                             </div>
                                           )}
 

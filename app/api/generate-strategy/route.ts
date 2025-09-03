@@ -173,20 +173,20 @@ CAMPAIGN CONTEXT:
 INSTRUKSI OUTPUT:
 ${campaignBrief?.product_name ? `PENTING: Strategi ini HARUS fokus pada produk "${campaignBrief.product_name}" dengan mempertimbangkan karakteristik dan penggunaan produk tersebut.` : ''}
 
-Buatkan strategi dalam format berikut (maksimal 3-4 paragraf singkat, setiap paragraf maksimal 2-3 kalimat):
+Buatkan strategi dalam format berikut (setiap section maksimal 3 paragraf singkat, tanpa formatting bold atau special character):
 
-🎯 **Content Strategy:**
-[Berikan rekomendasi konten spesifik untuk promosi produk ${campaignBrief?.product_name || 'campaign'} berdasarkan content mix dan expertise influencer]
+🎯 Content Strategy:
+[Berikan rekomendasi konten spesifik untuk promosi produk ${campaignBrief?.product_name || 'campaign'} berdasarkan content mix dan expertise influencer. Jelaskan tipe konten yang paling efektif, timing posting, dan approach yang sesuai dengan audience influencer.]
 
-📈 **Engagement Approach:**
-[Strategi untuk memaksimalkan engagement rate dan authenticity score terkait produk ${campaignBrief?.product_name || 'campaign'}]
+📈 Engagement Approach:
+[Strategi untuk memaksimalkan engagement rate dan authenticity score terkait produk ${campaignBrief?.product_name || 'campaign'}. Berikan rekomendasi interaksi dengan audience, tipe CTA yang efektif, dan cara membangun trust.]
 
-💡 **Campaign Execution:**
-[Timing, approach, dan tactical recommendations berdasarkan audience behavior untuk memaksimalkan awareness produk ${campaignBrief?.product_name || 'campaign'}]
+💡 Campaign Execution:
+[Timing, approach, dan tactical recommendations berdasarkan audience behavior untuk memaksimalkan awareness produk ${campaignBrief?.product_name || 'campaign'}. Sertakan detail execution plan dan milestone yang terukur.]
 
-${influencerData.scores.budget_efficiency > 0 ? '💰 **Budget Optimization:**\n[Tips optimasi budget berdasarkan efficiency score]' : '⚠️ **Investment Considerations:**\n[Pertimbangan khusus terkait budget efficiency yang rendah]'}
+${influencerData.scores.budget_efficiency > 0 ? '💰 Budget Optimization:\n[Tips optimasi budget berdasarkan efficiency score dan cara memaksimalkan ROI]' : '⚠️ Investment Considerations:\n[Pertimbangan khusus terkait budget efficiency yang rendah dan alternative approach]'}
 
-Berikan insight yang actionable, spesifik, dan data-driven. Hindari generic advice.`
+Gunakan bahasa yang natural dan praktis. Hindari penggunaan bold, italic, atau special formatting. Tulis dalam bahasa Indonesia yang mudah dipahami.`
 }
 
 function parseInsightsData(insights: string): string {
