@@ -60,6 +60,7 @@ import { BrandProfileForm } from "@/components/brand-profile-form"
 import { InfluencerList } from "@/components/influencer-list"
 import { useAuth } from "@/contexts/auth-context"
 import { APIStatusChecker } from "@/components/api-status-checker"
+import { geminiAIService } from "@/lib/gemini-ai"
 
 export default function BrandDashboard() {
   const { user } = useAuth() // Get current logged in brand
@@ -75,6 +76,9 @@ export default function BrandDashboard() {
   const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date())
   const [showApiResponse, setShowApiResponse] = useState(false) // New state for API response toggle
   const [expandedInfluencerTabs, setExpandedInfluencerTabs] = useState<{[key: string]: boolean}>({}) // State for expanded tabs per influencer
+  const [influencerStrategies, setInfluencerStrategies] = useState<{[key: string]: string}>({}) // Store generated strategies
+  const [isGeneratingStrategy, setIsGeneratingStrategy] = useState<{[key: string]: boolean}>({}) // Track strategy generation status
+  const [strategyErrors, setStrategyErrors] = useState<{[key: string]: string}>({}) // Track strategy generation errors
 
   // Calculate dynamic dashboard stats
   const dashboardStats = {
@@ -303,6 +307,67 @@ export default function BrandDashboard() {
     } catch (error) {
       console.error('Error parsing caption behavior:', error)
       return null
+    }
+  }
+
+  // Function to generate AI strategy using Gemini
+  const generateInfluencerStrategy = async (influencer: any, campaign?: CampaignData) => {
+    const influencerKey = `${influencer.username}_strategy`
+    
+    // Clear any existing errors for this influencer
+    setStrategyErrors(prev => {
+      const newErrors = { ...prev }
+      delete newErrors[influencerKey]
+      return newErrors
+    })
+
+    // Set loading state
+    setIsGeneratingStrategy(prev => ({ ...prev, [influencerKey]: true }))
+
+    try {
+      console.log('🤖 Generating AI strategy for:', influencer.username)
+      console.log('📦 Campaign data being sent:', campaign)
+      
+      // Prepare campaign brief data if available
+      const campaignBrief = campaign ? {
+        brand_name: campaign.brand_name,
+        product_name: campaign.product_name,
+        overview: campaign.overview,
+        usp: campaign.usp,
+        industry: campaign.industry,
+        budget: campaign.budget,
+        target_audience: campaign.audience_preference,
+        content_requirements: campaign.output?.content_types?.join(', '),
+        persona: campaign.influencer_persona,
+        marketing_objective: campaign.marketing_objective?.join(', ')
+      } : undefined
+
+      console.log('📋 Campaign brief prepared:', campaignBrief)
+
+      // Call Gemini AI service
+      const strategy = await geminiAIService.generateInfluencerStrategy(influencer, campaignBrief)
+      
+      // Store the generated strategy
+      setInfluencerStrategies(prev => ({
+        ...prev,
+        [influencerKey]: strategy
+      }))
+
+      console.log('✅ Strategy generated successfully for:', influencer.username)
+      return strategy
+    } catch (error) {
+      console.error('❌ Error generating strategy:', error)
+      
+      // Set error state instead of fallback
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      setStrategyErrors(prev => ({
+        ...prev,
+        [influencerKey]: `Failed to generate strategy: ${errorMessage}`
+      }))
+      
+      return null
+    } finally {
+      setIsGeneratingStrategy(prev => ({ ...prev, [influencerKey]: false }))
     }
   }
 
@@ -1580,54 +1645,152 @@ export default function BrandDashboard() {
                             
                             <TabsContent value="strategy" className="mt-4 p-4 bg-muted/20 rounded-lg">
                               <div className="space-y-4">
-                                <h5 className="font-semibold text-sm">Campaign Strategy Recommendations</h5>
-                                <div className="space-y-3">
-                                  {/* Hanya tampilkan strategy jika ada data yang relevan */}
-                                  {influencer.optimal_content_mix && (
-                                    <div className="p-3 bg-card rounded border border-border">
-                                      <h6 className="font-medium text-sm mb-2">Content Strategy:</h6>
-                                      <p className="text-sm text-muted-foreground">
-                                        {influencer.optimal_content_mix.reels_count > 0 && (
-                                          <>Focus on {influencer.optimal_content_mix.reels_count} Reels content </>
-                                        )}
-                                        {influencer.expertise && (
-                                          <>with {influencer.expertise} themes </>
-                                        )}
-                                        for maximum audience engagement.
-                                      </p>
-                                    </div>
-                                  )}
-                                  
-                                  {influencer.optimal_content_mix?.total_cost && (
-                                    <div className="p-3 bg-card rounded border border-border">
-                                      <h6 className="font-medium text-sm mb-2">Budget Allocation:</h6>
-                                      <p className="text-sm text-muted-foreground">
-                                        Recommended budget: Rp {(influencer.optimal_content_mix.total_cost / 1000000).toFixed(1)}M 
-                                        {influencer.optimal_content_mix.total_impact && (
-                                          <> for optimal ROI based on projected impact of {influencer.optimal_content_mix.total_impact.toFixed(1)}</>
-                                        )}.
-                                      </p>
-                                    </div>
-                                  )}
-                                  
-                                  {influencer.performance_metrics?.engagement_rate && (
-                                    <div className="p-3 bg-card rounded border border-border">
-                                      <h6 className="font-medium text-sm mb-2">Best Posting Times:</h6>
-                                      <p className="text-sm text-muted-foreground">
-                                        Optimize posting schedule during peak engagement hours based on 
-                                        {(influencer.performance_metrics.engagement_rate * 100).toFixed(1)}% average engagement rate.
-                                      </p>
-                                    </div>
-                                  )}
-                                  
-                                  {/* Fallback jika tidak ada data strategy */}
-                                  {!influencer.optimal_content_mix && !influencer.performance_metrics && (
-                                    <div className="text-center py-6 text-muted-foreground bg-card rounded border border-border">
-                                      <Target className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
-                                      <p className="text-sm">Strategy recommendations will be available after data analysis</p>
-                                    </div>
-                                  )}
+                                <div className="flex items-center justify-between">
+                                  <h5 className="font-semibold text-sm flex items-center">
+                                    <Target className="w-4 h-4 mr-2" />
+                                    AI-Generated Marketing Strategy
+                                  </h5>
+                                  <Badge variant="outline" className="text-xs">
+                                    Powered by Gemini AI
+                                  </Badge>
                                 </div>
+                                
+                                {(() => {
+                                  const influencerKey = `${influencer.username}_strategy`
+                                  const strategy = influencerStrategies[influencerKey]
+                                  const isGenerating = isGeneratingStrategy[influencerKey]
+                                  const error = strategyErrors[influencerKey]
+                                  
+                                  if (strategy) {
+                                    return (
+                                      <div className="space-y-3">
+                                        <div className="prose prose-sm max-w-none">
+                                          <div className="bg-card rounded-lg p-4 border border-border whitespace-pre-line text-sm text-foreground leading-relaxed">
+                                            {strategy}
+                                          </div>
+                                        </div>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => {
+                                            // Clear existing strategy to trigger regeneration
+                                            setInfluencerStrategies(prev => {
+                                              const newStrategies = { ...prev }
+                                              delete newStrategies[influencerKey]
+                                              return newStrategies
+                                            })
+                                            // Clear any previous errors
+                                            setStrategyErrors(prev => {
+                                              const newErrors = { ...prev }
+                                              delete newErrors[influencerKey]
+                                              return newErrors
+                                            })
+                                            // Generate new strategy
+                                            generateInfluencerStrategy(influencer, campaignDetail)
+                                          }}
+                                          disabled={isGenerating}
+                                          className="w-full"
+                                        >
+                                          {isGenerating ? (
+                                            <>
+                                              <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                                              Regenerating...
+                                            </>
+                                          ) : (
+                                            <>
+                                              <RefreshCw className="w-3 h-3 mr-2" />
+                                              Regenerate Strategy
+                                            </>
+                                          )}
+                                        </Button>
+                                      </div>
+                                    )
+                                  } else if (error) {
+                                    return (
+                                      <div className="text-center py-6 space-y-4">
+                                        <div className="mx-auto w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center">
+                                          <AlertTriangle className="w-8 h-8 text-destructive" />
+                                        </div>
+                                        <div>
+                                          <p className="font-medium text-sm mb-2 text-destructive">Strategy Generation Failed</p>
+                                          <p className="text-xs text-muted-foreground mb-4">
+                                            {error}
+                                          </p>
+                                        </div>
+                                        <Button
+                                          variant="outline"
+                                          onClick={() => {
+                                            // Clear error state
+                                            setStrategyErrors(prev => {
+                                              const newErrors = { ...prev }
+                                              delete newErrors[influencerKey]
+                                              return newErrors
+                                            })
+                                            // Retry generation
+                                            generateInfluencerStrategy(influencer, campaignDetail)
+                                          }}
+                                          disabled={isGenerating}
+                                          className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground disabled:opacity-50"
+                                        >
+                                          {isGenerating ? (
+                                            <>
+                                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                              Retrying...
+                                            </>
+                                          ) : (
+                                            <>
+                                              <RefreshCw className="w-4 h-4 mr-2" />
+                                              Retry Generation
+                                            </>
+                                          )}
+                                        </Button>
+                                      </div>
+                                    )
+                                  } else if (isGenerating) {
+                                    return (
+                                      <div className="text-center py-8 space-y-3">
+                                        <Loader2 className="w-8 h-8 mx-auto animate-spin text-primary" />
+                                        <div>
+                                          <p className="font-medium text-sm">Generating AI Strategy...</p>
+                                          <p className="text-xs text-muted-foreground">
+                                            Analyzing influencer data and campaign context
+                                          </p>
+                                        </div>
+                                      </div>
+                                    )
+                                  } else {
+                                    return (
+                                      <div className="text-center py-6 space-y-4">
+                                        <div className="mx-auto w-16 h-16 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full flex items-center justify-center">
+                                          <Brain className="w-8 h-8 text-primary" />
+                                        </div>
+                                        <div>
+                                          <p className="font-medium text-sm mb-2">AI Strategy Not Generated</p>
+                                          <p className="text-xs text-muted-foreground mb-4">
+                                            Get personalized marketing strategy based on comprehensive influencer analysis
+                                          </p>
+                                        </div>
+                                        <Button
+                                          onClick={() => generateInfluencerStrategy(influencer, campaignDetail)}
+                                          disabled={isGenerating}
+                                          className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 disabled:opacity-50"
+                                        >
+                                          {isGenerating ? (
+                                            <>
+                                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                              Generating...
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Sparkles className="w-4 h-4 mr-2" />
+                                              Generate AI Strategy
+                                            </>
+                                          )}
+                                        </Button>
+                                      </div>
+                                    )
+                                  }
+                                })()}
                               </div>
                             </TabsContent>
                           </Tabs>
@@ -1693,9 +1856,9 @@ export default function BrandDashboard() {
           </div>
 
           {/* API Status Checker */}
-          <div className="mb-6">
+          {/* <div className="mb-6">
             <APIStatusChecker />
-          </div>
+          </div> */}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <Card className="p-4 hover:shadow-lg transition-shadow duration-200">
