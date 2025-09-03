@@ -49,6 +49,7 @@ import {
   AlertTriangle,
   Quote,
   Edit3,
+  Copy,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -185,6 +186,87 @@ export default function BrandDashboard() {
     // Add new campaign to state
     setCampaigns(prev => [campaign, ...prev])
     toast.success('Campaign berhasil dibuat!')
+  }
+
+  // Helper function to parse and format strategy text with enhanced visual formatting
+  const formatStrategyText = (strategy: string) => {
+    if (!strategy) return null
+
+    // Split strategy into sections based on emoji headers
+    const sections = strategy.split(/(?=🎯|📈|💡|⚠️|💰)/).filter(section => section.trim())
+
+    return sections.map((section, index) => {
+      const lines = section.trim().split('\n').filter(line => line.trim())
+      if (lines.length === 0) return null
+
+      const headerLine = lines[0]
+      const contentLines = lines.slice(1).join('\n')
+
+      // Extract emoji and title
+      const emojiMatch = headerLine.match(/^(🎯|📈|💡|⚠️|💰)\s*\*\*(.*?)\*\*:?/)
+      if (!emojiMatch) return null
+
+      const emoji = emojiMatch[1]
+      const title = emojiMatch[2]
+
+      // Determine section color theme - simplified minimal theme
+      const getSectionTheme = (emoji: string) => {
+        switch (emoji) {
+          case '🎯': return { bg: 'bg-muted/30', border: 'border-muted', text: 'text-foreground' }
+          case '📈': return { bg: 'bg-muted/30', border: 'border-muted', text: 'text-foreground' }
+          case '💡': return { bg: 'bg-muted/30', border: 'border-muted', text: 'text-foreground' }
+          case '⚠️': return { bg: 'bg-muted/30', border: 'border-muted', text: 'text-foreground' }
+          case '💰': return { bg: 'bg-muted/30', border: 'border-muted', text: 'text-foreground' }
+          default: return { bg: 'bg-muted/30', border: 'border-muted', text: 'text-foreground' }
+        }
+      }
+
+      const theme = getSectionTheme(emoji)
+
+      // Format content with subtle highlighting that respects the theme
+      const formatContent = (text: string) => {
+        return text
+          // Bold important phrases in parentheses - subtle background
+          .replace(/\(([^)]+)\)/g, '<span class="font-medium text-foreground bg-muted/40 px-1 py-0.5 rounded text-xs">$1</span>')
+          // Bold product names and important terms
+          .replace(/\b([A-Z][a-z]+\s[A-Z][a-z]+(?:\s[A-Z][a-z]+)*)\b/g, '<span class="font-semibold text-foreground">$1</span>')
+          // Highlight percentages and numbers - minimal styling
+          .replace(/\b(\d+(?:\.\d+)?%)\b/g, '<span class="font-semibold text-foreground border border-border px-1 py-0.5 rounded text-xs">$1</span>')
+          .replace(/\bRp\s?([\d,.]+[MK]?)\b/g, '<span class="font-semibold text-foreground border border-border px-1 py-0.5 rounded text-xs">Rp $1</span>')
+          // Bold key marketing terms without colors
+          .replace(/\b(CTA|Call-to-Action|engagement|konversi|reach|brand awareness|audience|targeting|persona)\b/gi, '<span class="font-semibold text-foreground">$1</span>')
+          // Bold platform names
+          .replace(/\b(Instagram|TikTok|YouTube|Facebook|Twitter|Reels|Feeds|Stories|Post|Video)\b/gi, '<span class="font-semibold text-foreground">$1</span>')
+          // Subtle highlight for time references
+          .replace(/\b(jam \d+:\d+-\d+:\d+|pagi|siang|sore|malam)\b/gi, '<span class="font-medium text-foreground">$1</span>')
+      }
+
+      return (
+        <div key={index} className={`${theme.bg} ${theme.border} border rounded-lg p-4 space-y-3 group hover:shadow-sm transition-all duration-200`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <span className="text-lg">{emoji}</span>
+              <h6 className={`font-bold text-sm ${theme.text}`}>{title}</h6>
+            </div>
+            {/* Quick Action Button */}
+            <button 
+              className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 hover:bg-muted/50 rounded"
+              title="Copy section"
+              onClick={() => {
+                navigator.clipboard.writeText(`${emoji} ${title}\n${contentLines}`)
+                toast.success('Strategy section copied to clipboard!')
+              }}
+            >
+              <Copy className="w-3 h-3 text-muted-foreground hover:text-foreground" />
+            </button>
+          </div>
+          <div 
+            className={`text-sm ${theme.text} leading-relaxed`}
+            dangerouslySetInnerHTML={{ __html: formatContent(contentLines) }}
+          />
+        </div>
+      )
+    }).filter(Boolean)
   }
 
   // Helper function to parse caption behavior insights
@@ -498,6 +580,43 @@ export default function BrandDashboard() {
       
       console.log('🎉 Recommendations generated successfully!')
       toast.success(`Successfully generated ${apiResponse.recommendations.length} influencer recommendations!`)
+      
+      // 🚀 AUTO-GENERATE STRATEGIES FOR ALL INFLUENCERS
+      console.log('🤖 Auto-generating strategies for all recommended influencers...')
+      toast.loading('🧠 Generating AI marketing strategies for each influencer...', { duration: 3000 })
+      
+      // Generate strategies for all influencers in parallel
+      const strategyPromises = apiResponse.recommendations.map(async (influencer: any, index: number) => {
+        try {
+          console.log(`🎯 Generating strategy for influencer ${index + 1}/${apiResponse.recommendations.length}: @${influencer.username}`)
+          const strategy = await generateInfluencerStrategy(influencer, campaign)
+          return { influencer: influencer.username, strategy, success: true }
+        } catch (error) {
+          console.error(`❌ Failed to generate strategy for @${influencer.username}:`, error)
+          return { 
+            influencer: influencer.username, 
+            error: error instanceof Error ? error.message : 'Unknown error',
+            success: false 
+          }
+        }
+      })
+      
+      // Wait for all strategies to complete
+      const strategyResults = await Promise.allSettled(strategyPromises)
+      
+      // Count successful strategy generations
+      const successfulStrategies = strategyResults.filter(result => 
+        result.status === 'fulfilled' && result.value.success
+      ).length
+      
+      console.log(`✅ Strategy generation completed: ${successfulStrategies}/${apiResponse.recommendations.length} successful`)
+      
+      if (successfulStrategies > 0) {
+        toast.success(`Generated ${successfulStrategies} AI marketing strategies!`)
+      } else {
+        toast.error('Failed to generate strategies. You can try generating them individually.')
+      }
+      
       setSelectedCampaignDetail(campaign.brief_id)
     } catch (error: any) {
       console.error('❌ Error generating recommendations:', error)
@@ -750,7 +869,7 @@ export default function BrandDashboard() {
                       <Brain className="w-12 h-12 mx-auto text-primary/60 mb-4" />
                       <h3 className="text-lg font-semibold">Generate Influencer Recommendations</h3>
                       <p className="text-muted-foreground">
-                        Dapatkan rekomendasi influencer terbaik menggunakan AI untuk campaign ini
+                        Dapatkan rekomendasi influencer terbaik dan strategi marketing AI untuk campaign ini
                       </p>
                     </div>
                     <Button 
@@ -1291,7 +1410,12 @@ export default function BrandDashboard() {
 
                       {expandedInfluencerTabs[`${influencer.username}_${index}`] && (
                         <div className="mt-4">
-                          <Tabs defaultValue="insights" className="w-full">
+                          <Tabs 
+                            defaultValue={
+                              influencerStrategies[`${influencer.username}_strategy`] ? "strategy" : "insights"
+                            } 
+                            className="w-full"
+                          >
                             <TabsList className="grid w-full grid-cols-4 bg-muted/30">
                               <TabsTrigger value="insights" className="text-xs data-[state=active]:bg-card">
                                 <MessageCircle className="w-3 h-3 mr-1" />
@@ -1308,6 +1432,21 @@ export default function BrandDashboard() {
                               <TabsTrigger value="strategy" className="text-xs data-[state=active]:bg-card">
                                 <Target className="w-3 h-3 mr-1" />
                                 Strategy
+                                {(() => {
+                                  const influencerKey = `${influencer.username}_strategy`
+                                  const strategy = influencerStrategies[influencerKey]
+                                  const isGenerating = isGeneratingStrategy[influencerKey]
+                                  const error = strategyErrors[influencerKey]
+                                  
+                                  if (strategy) {
+                                    return <div className="w-2 h-2 bg-green-500 rounded-full ml-1" />
+                                  } else if (error) {
+                                    return <div className="w-2 h-2 bg-red-500 rounded-full ml-1" />
+                                  } else if (isGenerating) {
+                                    return <div className="w-2 h-2 bg-yellow-500 rounded-full ml-1 animate-pulse" />
+                                  }
+                                  return null
+                                })()}
                               </TabsTrigger>
                             </TabsList>
                             
@@ -1645,7 +1784,7 @@ export default function BrandDashboard() {
                             
                             <TabsContent value="strategy" className="mt-4 p-4 bg-muted/20 rounded-lg">
                               <div className="space-y-4">
-                                <div className="flex items-center justify-between">
+                                {/* <div className="flex items-center justify-between">
                                   <h5 className="font-semibold text-sm flex items-center">
                                     <Target className="w-4 h-4 mr-2" />
                                     AI-Generated Marketing Strategy
@@ -1653,7 +1792,7 @@ export default function BrandDashboard() {
                                   <Badge variant="outline" className="text-xs">
                                     Powered by Gemini AI
                                   </Badge>
-                                </div>
+                                </div> */}
                                 
                                 {(() => {
                                   const influencerKey = `${influencer.username}_strategy`
@@ -1662,47 +1801,111 @@ export default function BrandDashboard() {
                                   const error = strategyErrors[influencerKey]
                                   
                                   if (strategy) {
+                                    const formattedSections = formatStrategyText(strategy)
+                                    
                                     return (
-                                      <div className="space-y-3">
-                                        <div className="prose prose-sm max-w-none">
-                                          <div className="bg-card rounded-lg p-4 border border-border whitespace-pre-line text-sm text-foreground leading-relaxed">
-                                            {strategy}
+                                      <div className="space-y-4">
+                                        {/* Strategy Overview Header - Minimal design */}
+                                        <div className="bg-muted/30 rounded-lg p-4 border border-border">
+                                          <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center space-x-2">
+                                              <Target className="w-4 h-4 text-muted-foreground" />
+                                              <span className="font-semibold text-sm text-foreground">Marketing Strategy</span>
+                                            </div>
+                                            <div className="flex items-center space-x-1">
+                                              <div className="w-2 h-2 bg-primary rounded-full"></div>
+                                              <span className="text-xs text-muted-foreground font-medium">Complete</span>
+                                            </div>
+                                          </div>
+                                          <p className="text-xs text-muted-foreground">
+                                            AI-generated strategy based on influencer analysis and campaign data
+                                          </p>
+                                          
+                                          {/* Strategy Sections Progress - Simplified */}
+                                          <div className="mt-3 pt-3 border-t border-border">
+                                            <div className="flex items-center justify-between text-xs">
+                                              <span className="text-muted-foreground">Sections:</span>
+                                              <span className="text-foreground font-medium">
+                                                {formattedSections ? formattedSections.length : 0}/4
+                                              </span>
+                                            </div>
+                                            <div className="mt-1 w-full bg-muted rounded-full h-1">
+                                              <div 
+                                                className="bg-primary h-1 rounded-full transition-all duration-300" 
+                                                style={{ width: `${formattedSections ? (formattedSections.length / 4) * 100 : 0}%` }}
+                                              ></div>
+                                            </div>
                                           </div>
                                         </div>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => {
-                                            // Clear existing strategy to trigger regeneration
-                                            setInfluencerStrategies(prev => {
-                                              const newStrategies = { ...prev }
-                                              delete newStrategies[influencerKey]
-                                              return newStrategies
-                                            })
-                                            // Clear any previous errors
-                                            setStrategyErrors(prev => {
-                                              const newErrors = { ...prev }
-                                              delete newErrors[influencerKey]
-                                              return newErrors
-                                            })
-                                            // Generate new strategy
-                                            generateInfluencerStrategy(influencer, campaignDetail)
-                                          }}
-                                          disabled={isGenerating}
-                                          className="w-full"
-                                        >
-                                          {isGenerating ? (
-                                            <>
-                                              <Loader2 className="w-3 h-3 mr-2 animate-spin" />
-                                              Regenerating...
-                                            </>
+
+                                        {/* Formatted Strategy Sections */}
+                                        <div className="space-y-3">
+                                          {formattedSections && formattedSections.length > 0 ? (
+                                            formattedSections
                                           ) : (
-                                            <>
-                                              <RefreshCw className="w-3 h-3 mr-2" />
-                                              Regenerate Strategy
-                                            </>
+                                            // Fallback for unformatted text
+                                            <div className="bg-card rounded-lg p-4 border border-border">
+                                              <div className="whitespace-pre-line text-sm text-foreground leading-relaxed">
+                                                {strategy}
+                                              </div>
+                                            </div>
                                           )}
-                                        </Button>
+                                        </div>
+
+                                        {/* Action Buttons - Simplified */}
+                                        <div className="flex items-center justify-between pt-4 border-t border-border">
+                                          <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                                            <span>Generated by AI</span>
+                                          </div>
+                                          <div className="flex items-center space-x-2">
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => {
+                                                navigator.clipboard.writeText(strategy)
+                                                toast.success('Strategy copied!')
+                                              }}
+                                              className="flex items-center space-x-1 text-xs"
+                                            >
+                                              <Copy className="w-3 h-3" />
+                                              <span>Copy</span>
+                                            </Button>
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              onClick={() => {
+                                                // Clear existing strategy to trigger regeneration
+                                                setInfluencerStrategies(prev => {
+                                                  const newStrategies = { ...prev }
+                                                  delete newStrategies[influencerKey]
+                                                  return newStrategies
+                                                })
+                                                // Clear any previous errors
+                                                setStrategyErrors(prev => {
+                                                  const newErrors = { ...prev }
+                                                  delete newErrors[influencerKey]
+                                                  return newErrors
+                                                })
+                                                // Generate new strategy
+                                                generateInfluencerStrategy(influencer, campaignDetail)
+                                              }}
+                                              disabled={isGenerating}
+                                              className="flex items-center space-x-1"
+                                            >
+                                              {isGenerating ? (
+                                                <>
+                                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                                  <span>Generating...</span>
+                                                </>
+                                              ) : (
+                                                <>
+                                                  <RefreshCw className="w-3 h-3" />
+                                                  <span>Regenerate</span>
+                                                </>
+                                              )}
+                                            </Button>
+                                          </div>
+                                        </div>
                                       </div>
                                     )
                                   } else if (error) {
