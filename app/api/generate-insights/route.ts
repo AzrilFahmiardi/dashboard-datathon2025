@@ -12,22 +12,29 @@ interface GeminiResponse {
 
 export async function POST(request: NextRequest) {
   try {
-    const { type, data, campaignBrief } = await request.json()
+    const body = await request.json()
+    const { type, data, campaignBrief, prompt: customPrompt } = body
 
     console.log(`📥 Received insights request:`, {
       type,
       hasData: !!data,
+      hasCustomPrompt: !!customPrompt,
       dataLength: typeof data === 'string' ? data.length : 'not string',
       hasCampaignBrief: !!campaignBrief
     })
 
-    // Validate required fields
-    if (!type || !data) {
-      console.log('❌ Missing required fields')
-      return NextResponse.json(
-        { error: 'Missing required fields: type and data are required' },
-        { status: 400 }
-      )
+    // For general type, use custom prompt directly
+    if (type === 'general' && customPrompt) {
+      // Skip validation, use custom prompt directly
+    } else {
+      // Validate required fields for other types
+      if (!type || !data) {
+        console.log('❌ Missing required fields')
+        return NextResponse.json(
+          { error: 'Missing required fields: type and data are required' },
+          { status: 400 }
+        )
+      }
     }
 
     const apiKey = process.env.GEMINI_API_KEY
@@ -43,6 +50,9 @@ export async function POST(request: NextRequest) {
     
     // Generate different prompts based on insight type
     switch (type) {
+      case 'general':
+        prompt = customPrompt || 'Generate general insights'
+        break
       case 'comment':
         prompt = generateCommentInsightPrompt(data, campaignBrief)
         break
@@ -57,7 +67,7 @@ export async function POST(request: NextRequest) {
         break
       default:
         return NextResponse.json(
-          { error: 'Invalid insight type. Supported types: comment, caption, score, performance' },
+          { error: 'Invalid insight type. Supported types: general, comment, caption, score, performance' },
           { status: 400 }
         )
     }

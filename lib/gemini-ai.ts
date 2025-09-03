@@ -225,6 +225,85 @@ export class GeminiAIService {
       throw error
     }
   }
+
+  /**
+   * Generate general insights/responses using Gemini AI
+   * For chat and template question generation
+   */
+  async generateInsights(prompt: string): Promise<string> {
+    try {
+      console.log('🤖 Calling general insights API...')
+      
+      const response = await fetch('/api/generate-insights', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'general',
+          prompt: prompt
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || `API error: ${response.status}`)
+      }
+
+      const data = await response.json()
+      
+      if (data.insights) {
+        console.log('✅ General insights generated successfully')
+        return data.insights
+      } else {
+        throw new Error('Invalid response format from insights API')
+      }
+    } catch (error) {
+      console.error('❌ Error calling general insights API:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Generate chat responses for campaign assistant
+   */
+  async generateChatResponse(
+    userMessage: string,
+    contextData: any
+  ): Promise<string> {
+    try {
+      console.log('🤖 Calling chat response API...')
+      
+      const response = await fetch('/api/generate-insights', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userMessage,
+          contextData,
+          type: 'chat'
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || `API error: ${response.status}`)
+      }
+
+      const data = await response.json()
+      
+      if (data.response) {
+        console.log('✅ Chat response generated successfully')
+        return data.response
+      } else {
+        throw new Error('Invalid response format from chat API')
+      }
+    } catch (error) {
+      console.error('❌ Error calling chat response API:', error)
+      throw error
+    }
+  }
 }
 
 export const geminiAIService = new GeminiAIService()

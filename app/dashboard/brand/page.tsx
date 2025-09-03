@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import FirebaseTest from "@/components/FirebaseTest"
 import { firebaseCampaignService, type CampaignData } from "@/lib/firebase-campaign"
 import { influencerAPI, type ApiResponse } from "@/lib/influencer-api"
@@ -30,11 +31,13 @@ import {
   Brain,
   Sparkles,
   MessageCircle,
+  MessageSquare,
   BarChart3,
   Zap,
   Crown,
   Star,
   RefreshCw,
+  RotateCcw,
   Megaphone,
   PieChart,
   CheckCircle,
@@ -50,6 +53,7 @@ import {
   Quote,
   Edit3,
   Copy,
+  X,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -85,6 +89,15 @@ export default function BrandDashboard() {
   const [influencerInsights, setInfluencerInsights] = useState<{[key: string]: any}>({}) // Store AI insights for each section
   const [isGeneratingInsights, setIsGeneratingInsights] = useState<{[key: string]: boolean}>({}) // Track insights generation status
   const [insightsErrors, setInsightsErrors] = useState<{[key: string]: string}>({}) // Track insights errors
+  
+  // State for floating chat
+  const [isChatModalOpen, setIsChatModalOpen] = useState(false)
+  const [chatMessages, setChatMessages] = useState<Array<{role: 'user' | 'assistant', content: string}>>([])
+  const [chatInput, setChatInput] = useState('')
+  const [isChatLoading, setIsChatLoading] = useState(false)
+  const [templateQuestions, setTemplateQuestions] = useState<Array<{question: string, icon: string, color: string}>>([])
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false)
+  const [templateQuestionsError, setTemplateQuestionsError] = useState<string | null>(null)
 
   // Calculate dynamic dashboard stats
   const dashboardStats = {
@@ -166,8 +179,21 @@ export default function BrandDashboard() {
   useEffect(() => {
     if (selectedCampaignDetail) {
       loadAIDataForCampaign(selectedCampaignDetail)
+      // Reset template questions when campaign changes
+      setTemplateQuestions([])
+      setChatMessages([]) // Also reset chat when switching campaigns
     }
   }, [selectedCampaignDetail])
+
+  // Generate template questions when chat modal opens and data is available
+  useEffect(() => {
+    if (isChatModalOpen && selectedCampaignDetail && templateQuestions.length === 0) {
+      const campaignDetail = campaigns.find(c => c.brief_id === selectedCampaignDetail)
+      if (campaignDetail) {
+        generateTemplateQuestions(campaignDetail, campaignDetail.recommendation_data)
+      }
+    }
+  }, [isChatModalOpen, selectedCampaignDetail, campaigns, templateQuestions.length])
 
   // Handle URL parameters for tab switching
   useEffect(() => {
@@ -577,7 +603,7 @@ export default function BrandDashboard() {
       // Convert campaign data to appropriate format
       const campaignBrief = convertToCampaignBrief(campaign)
       
-      let insights = null
+      let insights: string | null = null
       
       switch (sectionType) {
         case 'comment':
@@ -671,6 +697,474 @@ export default function BrandDashboard() {
       return null
     } finally {
       setIsGeneratingInsights(prev => ({ ...prev, [insightKey]: false }))
+    }
+  }
+
+  // Function to generate template questions using Gemini
+  const generateTemplateQuestions = async (campaignDetail: CampaignData, aiData?: any) => {
+    try {
+      setIsLoadingTemplates(true)
+      setTemplateQuestionsError(null) // Clear previous errors
+      console.log('🤖 Generating template questions from Gemini AI...')
+
+      // Prepare comprehensive context for Gemini
+      const contextData = {
+        campaign: {
+          title: campaignDetail.title,
+          brand_name: campaignDetail.brand_name,
+          product_name: campaignDetail.product_name,
+          industry: campaignDetail.industry,
+          overview: campaignDetail.overview,
+          usp: campaignDetail.usp,
+          budget: campaignDetail.budget,
+          status: campaignDetail.status,
+          total_influencer: campaignDetail.total_influencer,
+          niche: campaignDetail.niche,
+          target_audience: campaignDetail.audience_preference,
+          marketing_objective: campaignDetail.marketing_objective,
+          content_types: campaignDetail.output?.content_types,
+          deliverables: campaignDetail.output?.deliverables
+        },
+        recommendations: aiData?.recommendations ? {
+          total_count: aiData.recommendations.length,
+          influencers: aiData.recommendations.map((inf: any) => ({
+            username: inf.username,
+            score: inf.scores?.overall_score,
+            followers: inf.followers_count,
+            engagement_rate: inf.engagement_rate,
+            tier: inf.tier,
+            expertise: inf.expertise,
+            reach_potential: inf.performance_metrics?.reach_potential,
+            projected_impact: inf.performance_metrics?.projected_impact
+          }))
+        } : null,
+        insights_available: {
+          has_strategies: Object.keys(influencerStrategies).length > 0,
+          has_insights: Object.keys(influencerInsights).length > 0,
+          strategy_count: Object.keys(influencerStrategies).length,
+          insights_count: Object.keys(influencerInsights).length
+        }
+      }
+
+      // Call Gemini to generate contextual template questions
+      const prompt = `Sebagai AI assistant untuk influencer marketing, buatlah 3-4 template pertanyaan yang relevan dan menarik KHUSUS untuk campaign ini saja:
+
+CAMPAIGN YANG SEDANG DIANALISIS:
+- Campaign: "${contextData.campaign.title}"
+- Brand: ${contextData.campaign.brand_name}
+- Product: ${contextData.campaign.product_name}
+- Industry: ${contextData.campaign.industry}
+- Budget: Rp ${(contextData.campaign.budget / 1000000).toFixed(1)}M
+- Target Influencers: ${contextData.campaign.total_influencer}
+- Status: ${contextData.campaign.status}
+- Marketing Objectives: ${Array.isArray(contextData.campaign.marketing_objective) ? contextData.campaign.marketing_objective.join(', ') : contextData.campaign.marketing_objective}
+
+${contextData.recommendations ? `
+REKOMENDASI INFLUENCER TERSEDIA:
+- Total Influencer yang Direkomendasikan: ${contextData.recommendations.total_count}
+- Top Performer: @${contextData.recommendations.influencers[0]?.username} (Score: ${(contextData.recommendations.influencers[0]?.score * 100).toFixed(1)}%)
+- Rata-rata Engagement Rate: ${((contextData.recommendations.influencers.reduce((sum: number, inf: any) => sum + (inf.engagement_rate || 0), 0) / contextData.recommendations.influencers.length) * 100).toFixed(1)}%
+` : ''}
+
+${contextData.insights_available.has_strategies || contextData.insights_available.has_insights ? `
+INSIGHTS YANG TERSEDIA UNTUK CAMPAIGN INI:
+- Strategi Marketing: ${contextData.insights_available.strategy_count} insight tersedia
+- Performance Analysis: ${contextData.insights_available.insights_count} insight tersedia
+` : ''}
+
+INSTRUKSI PENTING:
+- HANYA fokus pada campaign "${contextData.campaign.title}" ini
+- JANGAN menyebutkan campaign lain atau data global
+- Pertanyaan harus spesifik untuk brand "${contextData.campaign.brand_name}" dan produk "${contextData.campaign.product_name}"
+- Gunakan data rekomendasi influencer yang tersedia
+- Buat pertanyaan yang actionable untuk campaign ini
+
+Buatlah template pertanyaan yang:
+1. Spesifik HANYA untuk campaign ini (${contextData.campaign.title})
+2. Membantu optimalisasi campaign ${contextData.campaign.brand_name}
+3. Memanfaatkan data influencer yang direkomendasikan
+4. Fokus pada ROI dan performa campaign ini
+
+Format response dalam JSON array seperti ini:
+[
+  {
+    "question": "Pertanyaan lengkap dalam Bahasa Indonesia untuk campaign ini",
+    "icon": "BarChart3|DollarSign|Crown|TrendingUp|Users|Target|Zap|Star|Trophy|Shield",
+    "color": "blue|green|purple|orange|pink|indigo"
+  }
+]
+
+Pastikan pertanyaan mencakup aspek: performa influencer yang direkomendasikan, optimasi budget campaign ini, strategi marketing spesifik untuk produk ${contextData.campaign.product_name}, dan ROI potential campaign ${contextData.campaign.title}.
+
+PENTING: Jangan menyebutkan "campaign sebelumnya", "campaign lain", atau "total campaign". Fokus hanya pada campaign "${contextData.campaign.title}" ini saja.`
+
+      const response = await geminiAIService.generateInsights(prompt)
+      
+      // Parse the JSON response
+      let questions = []
+      try {
+        // Extract JSON from response if it's wrapped in text
+        const jsonMatch = response.match(/\[[\s\S]*\]/)
+        if (jsonMatch) {
+          questions = JSON.parse(jsonMatch[0])
+        } else {
+          // Fallback parsing if direct JSON
+          questions = JSON.parse(response)
+        }
+      } catch (parseError) {
+        console.error('Failed to parse Gemini response:', parseError)
+        throw new Error('Gemini AI memberikan response yang tidak valid. Format JSON tidak sesuai yang diharapkan.')
+      }
+
+      // Validate and set questions
+      if (Array.isArray(questions) && questions.length > 0) {
+        // Validate each question has required fields
+        const validQuestions = questions.filter(q => 
+          q.question && typeof q.question === 'string' &&
+          q.icon && typeof q.icon === 'string' &&
+          q.color && typeof q.color === 'string'
+        )
+        
+        if (validQuestions.length === 0) {
+          throw new Error('Gemini AI tidak menghasilkan pertanyaan template yang valid.')
+        }
+        
+        setTemplateQuestions(validQuestions.slice(0, 4)) // Limit to 4 questions
+        setTemplateQuestionsError(null)
+        console.log('✅ Generated template questions:', validQuestions.length)
+      } else {
+        throw new Error('Gemini AI tidak menghasilkan template pertanyaan yang valid atau array kosong.')
+      }
+
+    } catch (error) {
+      console.error('❌ Error generating template questions:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan yang tidak diketahui'
+      setTemplateQuestionsError(errorMessage)
+      setTemplateQuestions([]) // Clear any existing questions
+      toast.error('Gagal menghasilkan template pertanyaan dari AI')
+    } finally {
+      setIsLoadingTemplates(false)
+    }
+  }
+
+  // Function to handle chat with AI about campaign data
+  const handleChatSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!chatInput.trim() || isChatLoading) return
+
+    const userMessage = chatInput.trim()
+    setChatInput('')
+    setIsChatLoading(true)
+
+    // Add user message to chat
+    setChatMessages(prev => [...prev, { role: 'user', content: userMessage }])
+
+    try {
+      // Get current campaign data and recommendations
+      const campaignDetail = campaigns.find(c => c.brief_id === selectedCampaignDetail)
+      const aiData = campaignDetail?.recommendation_data
+
+      // Prepare comprehensive context for Gemini
+      const contextData = {
+        campaign: campaignDetail ? {
+          title: campaignDetail.title,
+          brand_name: campaignDetail.brand_name,
+          product_name: campaignDetail.product_name,
+          industry: campaignDetail.industry,
+          overview: campaignDetail.overview,
+          usp: campaignDetail.usp,
+          budget: campaignDetail.budget,
+          status: campaignDetail.status,
+          total_influencer: campaignDetail.total_influencer,
+          niche: campaignDetail.niche,
+          target_audience: campaignDetail.audience_preference,
+          marketing_objective: campaignDetail.marketing_objective,
+          content_types: campaignDetail.output?.content_types,
+          deliverables: campaignDetail.output?.deliverables,
+          due_date: campaignDetail.due_date
+        } : null,
+        recommendations: aiData?.recommendations ? {
+          total_count: aiData.recommendations.length,
+          influencers: aiData.recommendations.map((inf: any) => ({
+            username: inf.username,
+            score: inf.scores?.overall_score,
+            followers: inf.followers_count,
+            engagement_rate: inf.engagement_rate,
+            tier: inf.tier,
+            expertise: inf.expertise,
+            reach_potential: inf.performance_metrics?.reach_potential,
+            projected_impact: inf.performance_metrics?.projected_impact,
+            audience_overlap: inf.scores?.audience_alignment,
+            content_quality: inf.scores?.content_quality,
+            brand_safety: inf.scores?.brand_safety
+          }))
+        } : null,
+        ai_insights: {
+          strategies: Object.entries(influencerStrategies).map(([key, strategy]) => ({
+            influencer: key.split('_strategy')[0],
+            strategy_preview: typeof strategy === 'string' ? strategy.substring(0, 200) + '...' : ''
+          })),
+          insights: Object.entries(influencerInsights).map(([key, insight]) => ({
+            type: key.split('_').slice(-2).join('_'),
+            influencer: key.split('_')[0],
+            insight_preview: typeof insight === 'string' ? insight.substring(0, 200) + '...' : ''
+          }))
+        },
+        chat_history: chatMessages.slice(-3) // Include last 3 messages for context
+      }
+
+      // Create comprehensive prompt for Gemini
+      const prompt = `Kamu adalah AI Assistant khusus untuk campaign "${contextData.campaign?.title || 'Unknown Campaign'}" dari brand ${contextData.campaign?.brand_name || 'Unknown Brand'}.
+
+ATURAN PENTING:
+- HANYA jawab pertanyaan yang berkaitan dengan campaign "${contextData.campaign?.title || 'Unknown Campaign'}" ini
+- JANGAN jawab pertanyaan tentang campaign lain, topik umum, atau hal di luar konteks campaign ini
+- Jika user bertanya hal di luar konteks campaign ini, katakan: "Saya hanya dapat membantu menjawab pertanyaan terkait campaign '${contextData.campaign?.title || 'Unknown Campaign'}' yang sedang berlangsung. Silakan ajukan pertanyaan tentang strategi influencer, budget optimization, atau performa campaign ini."
+
+CAMPAIGN YANG SEDANG DIANALISIS:
+${contextData.campaign ? `
+- Campaign: "${contextData.campaign.title}"
+- Brand: ${contextData.campaign.brand_name}
+- Product: ${contextData.campaign.product_name} 
+- Industry: ${contextData.campaign.industry}
+- Overview: ${contextData.campaign.overview}
+- USP: ${contextData.campaign.usp}
+- Budget: Rp ${(contextData.campaign.budget / 1000000).toFixed(1)}M
+- Target Influencers: ${contextData.campaign.total_influencer}
+- Status: ${contextData.campaign.status}
+- Marketing Objectives: ${Array.isArray(contextData.campaign.marketing_objective) ? contextData.campaign.marketing_objective.join(', ') : contextData.campaign.marketing_objective}
+- Target Audience: ${JSON.stringify(contextData.campaign.target_audience)}
+- Content Types: ${contextData.campaign.content_types?.join(', ')}
+- Total Deliverables: ${contextData.campaign.deliverables}
+- Due Date: ${contextData.campaign.due_date}
+` : 'ERROR: Campaign data not available - cannot answer questions without campaign context'}
+
+${contextData.recommendations ? `
+INFLUENCER YANG DIREKOMENDASIKAN UNTUK CAMPAIGN INI (${contextData.recommendations.total_count} total):
+${contextData.recommendations.influencers.slice(0, 5).map((inf: any, idx: number) => `
+${idx + 1}. @${inf.username}
+   - Overall Score: ${(inf.score * 100).toFixed(1)}%
+   - Followers: ${(inf.followers / 1000).toFixed(1)}K
+   - Engagement Rate: ${(inf.engagement_rate * 100).toFixed(1)}%
+   - Tier: ${inf.tier}
+   - Expertise: ${inf.expertise}
+   - Reach Potential: ${inf.reach_potential}
+   - Projected Impact: ${inf.projected_impact}
+   - Audience Alignment: ${(inf.audience_overlap * 100).toFixed(1)}%
+   - Content Quality: ${(inf.content_quality * 100).toFixed(1)}%
+   - Brand Safety: ${(inf.brand_safety * 100).toFixed(1)}%`).join('')}
+` : 'Rekomendasi influencer belum di-generate untuk campaign ini'}
+
+${contextData.ai_insights.strategies.length > 0 ? `
+STRATEGI MARKETING YANG SUDAH DIBUAT UNTUK CAMPAIGN INI:
+${contextData.ai_insights.strategies.map(s => `- ${s.influencer}: ${s.strategy_preview}`).join('\n')}
+` : 'Belum ada strategi marketing yang di-generate untuk campaign ini'}
+
+${contextData.ai_insights.insights.length > 0 ? `
+INSIGHTS PERFORMA YANG SUDAH DIBUAT UNTUK CAMPAIGN INI:
+${contextData.ai_insights.insights.map(i => `- ${i.influencer} (${i.type}): ${i.insight_preview}`).join('\n')}
+` : 'Belum ada insights performa yang di-generate untuk campaign ini'}
+
+${contextData.chat_history.length > 0 ? `
+KONTEKS PERCAKAPAN SEBELUMNYA:
+${contextData.chat_history.map(msg => `${msg.role}: ${msg.content}`).join('\n')}
+` : ''}
+
+PERTANYAAN USER: "${userMessage}"
+
+VALIDASI KONTEKS:
+- Apakah pertanyaan ini berkaitan dengan campaign "${contextData.campaign?.title || 'Unknown Campaign'}"? 
+- Jika TIDAK, berikan response penolakan sesuai aturan di atas
+- Jika YA, lanjutkan dengan analisis
+
+Berikan jawaban yang:
+1. HANYA terkait campaign "${contextData.campaign?.title || 'Unknown Campaign'}" ini
+2. Spesifik berdasarkan data campaign yang tersedia
+3. Memberikan insights actionable untuk optimasi campaign ini
+4. Menggunakan data influencer dan metrics konkret
+5. Menyarankan strategi spesifik untuk produk ${contextData.campaign?.product_name || 'Unknown Product'}
+6. Format yang mudah dibaca dengan bullet points dan sections
+7. Bahasa Indonesia yang professional
+
+Jika data tidak tersedia untuk menjawab pertanyaan, jelaskan fitur mana yang perlu dijalankan terlebih dahulu untuk campaign ini.`
+
+      console.log('🤖 Sending question to Gemini with full context...')
+      const response = await geminiAIService.generateInsights(prompt)
+      
+      // Add AI response to chat
+      setChatMessages(prev => [...prev, { role: 'assistant', content: response }])
+      console.log('✅ Received response from Gemini AI')
+
+    } catch (error) {
+      console.error('❌ Error in chat with Gemini:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      setChatMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: `Maaf, terjadi kesalahan saat memproses pertanyaan Anda: ${errorMessage}. Silakan coba lagi atau hubungi support jika masalah berlanjut.` 
+      }])
+    } finally {
+      setIsChatLoading(false)
+    }
+  }
+
+  // Function to handle template questions
+  const handleTemplateQuestion = async (question: string) => {
+    if (isChatLoading) return
+    
+    setChatInput(question)
+    setIsChatLoading(true)
+
+    // Add user message to chat immediately
+    setChatMessages(prev => [...prev, { role: 'user', content: question }])
+
+    try {
+      // Get current campaign data and recommendations
+      const campaignDetail = campaigns.find(c => c.brief_id === selectedCampaignDetail)
+      const aiData = campaignDetail?.recommendation_data
+
+      // Prepare comprehensive context for Gemini (same as handleChatSubmit)
+      const contextData = {
+        campaign: campaignDetail ? {
+          title: campaignDetail.title,
+          brand_name: campaignDetail.brand_name,
+          product_name: campaignDetail.product_name,
+          industry: campaignDetail.industry,
+          overview: campaignDetail.overview,
+          usp: campaignDetail.usp,
+          budget: campaignDetail.budget,
+          status: campaignDetail.status,
+          total_influencer: campaignDetail.total_influencer,
+          niche: campaignDetail.niche,
+          target_audience: campaignDetail.audience_preference,
+          marketing_objective: campaignDetail.marketing_objective,
+          content_types: campaignDetail.output?.content_types,
+          deliverables: campaignDetail.output?.deliverables,
+          due_date: campaignDetail.due_date
+        } : null,
+        recommendations: aiData?.recommendations ? {
+          total_count: aiData.recommendations.length,
+          influencers: aiData.recommendations.map((inf: any) => ({
+            username: inf.username,
+            score: inf.scores?.overall_score,
+            followers: inf.followers_count,
+            engagement_rate: inf.engagement_rate,
+            tier: inf.tier,
+            expertise: inf.expertise,
+            reach_potential: inf.performance_metrics?.reach_potential,
+            projected_impact: inf.performance_metrics?.projected_impact,
+            audience_overlap: inf.scores?.audience_alignment,
+            content_quality: inf.scores?.content_quality,
+            brand_safety: inf.scores?.brand_safety
+          }))
+        } : null,
+        ai_insights: {
+          strategies: Object.entries(influencerStrategies).map(([key, strategy]) => ({
+            influencer: key.split('_strategy')[0],
+            strategy_preview: typeof strategy === 'string' ? strategy.substring(0, 200) + '...' : ''
+          })),
+          insights: Object.entries(influencerInsights).map(([key, insight]) => ({
+            type: key.split('_').slice(-2).join('_'),
+            influencer: key.split('_')[0],
+            insight_preview: typeof insight === 'string' ? insight.substring(0, 200) + '...' : ''
+          }))
+        },
+        chat_history: chatMessages.slice(-3) // Include last 3 messages for context
+      }
+
+      // Create the same prompt as in handleChatSubmit
+      const prompt = `Kamu adalah AI Assistant khusus untuk campaign "${contextData.campaign?.title || 'Unknown Campaign'}" dari brand ${contextData.campaign?.brand_name || 'Unknown Brand'}.
+
+ATURAN PENTING:
+- HANYA jawab pertanyaan yang berkaitan dengan campaign "${contextData.campaign?.title || 'Unknown Campaign'}" ini
+- JANGAN jawab pertanyaan tentang campaign lain, topik umum, atau hal di luar konteks campaign ini
+- Jika user bertanya hal di luar konteks campaign ini, katakan: "Saya hanya dapat membantu menjawab pertanyaan terkait campaign '${contextData.campaign?.title || 'Unknown Campaign'}' yang sedang berlangsung. Silakan ajukan pertanyaan tentang strategi influencer, budget optimization, atau performa campaign ini."
+
+CAMPAIGN YANG SEDANG DIANALISIS:
+${contextData.campaign ? `
+- Campaign: "${contextData.campaign.title}"
+- Brand: ${contextData.campaign.brand_name}
+- Product: ${contextData.campaign.product_name} 
+- Industry: ${contextData.campaign.industry}
+- Overview: ${contextData.campaign.overview}
+- USP: ${contextData.campaign.usp}
+- Budget: Rp ${(contextData.campaign.budget / 1000000).toFixed(1)}M
+- Target Influencers: ${contextData.campaign.total_influencer}
+- Status: ${contextData.campaign.status}
+- Marketing Objectives: ${Array.isArray(contextData.campaign.marketing_objective) ? contextData.campaign.marketing_objective.join(', ') : contextData.campaign.marketing_objective}
+- Target Audience: ${JSON.stringify(contextData.campaign.target_audience)}
+- Content Types: ${contextData.campaign.content_types?.join(', ')}
+- Total Deliverables: ${contextData.campaign.deliverables}
+- Due Date: ${contextData.campaign.due_date}
+` : 'ERROR: Campaign data not available - cannot answer questions without campaign context'}
+
+${contextData.recommendations ? `
+INFLUENCER YANG DIREKOMENDASIKAN UNTUK CAMPAIGN INI (${contextData.recommendations.total_count} total):
+${contextData.recommendations.influencers.slice(0, 5).map((inf: any, idx: number) => `
+${idx + 1}. @${inf.username}
+   - Overall Score: ${(inf.score * 100).toFixed(1)}%
+   - Followers: ${(inf.followers / 1000).toFixed(1)}K
+   - Engagement Rate: ${(inf.engagement_rate * 100).toFixed(1)}%
+   - Tier: ${inf.tier}
+   - Expertise: ${inf.expertise}
+   - Reach Potential: ${inf.reach_potential}
+   - Projected Impact: ${inf.projected_impact}
+   - Audience Alignment: ${(inf.audience_overlap * 100).toFixed(1)}%
+   - Content Quality: ${(inf.content_quality * 100).toFixed(1)}%
+   - Brand Safety: ${(inf.brand_safety * 100).toFixed(1)}%`).join('')}
+` : 'Rekomendasi influencer belum di-generate untuk campaign ini'}
+
+${contextData.ai_insights.strategies.length > 0 ? `
+STRATEGI MARKETING YANG SUDAH DIBUAT UNTUK CAMPAIGN INI:
+${contextData.ai_insights.strategies.map(s => `- ${s.influencer}: ${s.strategy_preview}`).join('\n')}
+` : 'Belum ada strategi marketing yang di-generate untuk campaign ini'}
+
+${contextData.ai_insights.insights.length > 0 ? `
+INSIGHTS PERFORMA YANG SUDAH DIBUAT UNTUK CAMPAIGN INI:
+${contextData.ai_insights.insights.map(i => `- ${i.influencer} (${i.type}): ${i.insight_preview}`).join('\n')}
+` : 'Belum ada insights performa yang di-generate untuk campaign ini'}
+
+${contextData.chat_history.length > 0 ? `
+KONTEKS PERCAKAPAN SEBELUMNYA:
+${contextData.chat_history.map(msg => `${msg.role}: ${msg.content}`).join('\n')}
+` : ''}
+
+PERTANYAAN USER: "${question}"
+
+VALIDASI KONTEKS:
+- Apakah pertanyaan ini berkaitan dengan campaign "${contextData.campaign?.title || 'Unknown Campaign'}"? 
+- Jika TIDAK, berikan response penolakan sesuai aturan di atas
+- Jika YA, lanjutkan dengan analisis
+
+Berikan jawaban yang:
+1. HANYA terkait campaign "${contextData.campaign?.title || 'Unknown Campaign'}" ini
+2. Spesifik berdasarkan data campaign yang tersedia
+3. Memberikan insights actionable untuk optimasi campaign ini
+4. Menggunakan data influencer dan metrics konkret
+5. Menyarankan strategi spesifik untuk produk ${contextData.campaign?.product_name || 'Unknown Product'}
+6. Format yang mudah dibaca dengan bullet points dan sections
+7. Bahasa Indonesia yang professional
+
+Jika data tidak tersedia untuk menjawab pertanyaan, jelaskan fitur mana yang perlu dijalankan terlebih dahulu untuk campaign ini.`
+
+      console.log('🤖 Sending template question to Gemini with full context...')
+      const response = await geminiAIService.generateInsights(prompt)
+      
+      // Add AI response to chat
+      setChatMessages(prev => [...prev, { role: 'assistant', content: response }])
+      console.log('✅ Received response from Gemini AI for template question')
+      
+      // Clear input after successful submission
+      setChatInput('')
+
+    } catch (error) {
+      console.error('❌ Error processing template question:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      setChatMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: `Maaf, terjadi kesalahan saat memproses pertanyaan template: ${errorMessage}. Silakan coba lagi.` 
+      }])
+    } finally {
+      setIsChatLoading(false)
     }
   }
 
@@ -1142,6 +1636,87 @@ export default function BrandDashboard() {
               </Card>
             </div>
           </main>
+
+          {/* Floating Chat Icon - Limited functionality before recommendations */}
+          <div className="fixed bottom-8 right-8 z-50">
+            <Button
+              onClick={() => setIsChatModalOpen(true)}
+              className="h-16 w-16 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 border-2 border-primary-foreground/20"
+              size="icon"
+            >
+              <MessageCircle className="w-8 h-8 text-primary-foreground" />
+            </Button>
+          </div>
+
+          {/* Chat Modal - Limited to general questions */}
+          <Dialog open={isChatModalOpen} onOpenChange={setIsChatModalOpen}>
+            <DialogContent className="sm:max-w-[600px] max-w-[95vw] max-h-[80vh] h-[500px] flex flex-col p-0 gap-0">
+              <DialogHeader className="p-6 pb-4 border-b bg-gradient-to-r from-primary/5 to-primary/10">
+                <DialogTitle className="flex items-center text-xl">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+                    <Brain className="w-6 h-6 text-primary" />
+                  </div>
+                  AI Campaign Assistant
+                </DialogTitle>
+                <DialogDescription className="text-base mt-2">
+                  Generate recommendations terlebih dahulu untuk analisis mendalam
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="flex-1 flex flex-col p-6 min-h-0">
+                <div className="text-center py-12 space-y-6">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/10 to-primary/20 flex items-center justify-center mx-auto">
+                    <Sparkles className="w-10 h-10 text-primary" />
+                  </div>
+                  <div className="space-y-3">
+                    <h3 className="text-2xl font-bold text-foreground">Siap untuk AI Insights?</h3>
+                    <p className="text-base text-muted-foreground max-w-md mx-auto leading-relaxed">
+                      Generate AI recommendations terlebih dahulu untuk mendapatkan analisis mendalam tentang influencer dan strategi marketing yang tepat untuk campaign Anda.
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-center space-x-4 text-sm text-muted-foreground">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-primary rounded-full"></div>
+                        <span>Analisis Influencer</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-primary rounded-full"></div>
+                        <span>Strategi Marketing</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-primary rounded-full"></div>
+                        <span>Performance Insights</span>
+                      </div>
+                    </div>
+                    
+                    <Button 
+                      onClick={() => {
+                        setIsChatModalOpen(false)
+                        handleGenerateRecommendations(campaignDetail)
+                      }}
+                      disabled={isGeneratingRecommendations}
+                      size="lg"
+                      className="px-8 py-3 h-auto text-base font-semibold"
+                    >
+                      {isGeneratingRecommendations ? (
+                        <>
+                          <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                          Generating AI Recommendations...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-5 h-5 mr-3" />
+                          Generate AI Recommendations
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       )
     }
@@ -2501,6 +3076,255 @@ export default function BrandDashboard() {
             </div>
           </div>
         </main>
+
+        {/* Floating Chat Icon - Only visible in campaign detail with recommendations */}
+        <div className="fixed bottom-8 right-8 z-50">
+          <Button
+            onClick={() => setIsChatModalOpen(true)}
+            className="h-16 w-16 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 border-2 border-primary-foreground/20"
+            size="icon"
+          >
+            <MessageCircle className="w-8 h-8 text-primary-foreground" />
+          </Button>
+        </div>
+
+        {/* Chat Modal */}
+        <Dialog open={isChatModalOpen} onOpenChange={setIsChatModalOpen}>
+          <DialogContent className="sm:max-w-[900px] max-w-[95vw] max-h-[92vh] h-[800px] flex flex-col p-0 gap-0 overflow-hidden">
+            <DialogHeader className="p-6 pb-4 border-b bg-gradient-to-r from-primary/5 to-primary/10 flex-shrink-0">
+              <DialogTitle className="flex items-center text-xl">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+                  <Brain className="w-6 h-6 text-primary" />
+                </div>
+                AI Campaign Assistant
+              </DialogTitle>
+              <DialogDescription className="text-base mt-2">
+                Tanyakan tentang data campaign dan rekomendasi influencer Anda
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="flex-1 flex flex-col p-6 min-h-0 overflow-hidden">
+              {/* Chat Messages */}
+              <div className="flex-1 overflow-y-auto space-y-4 p-4 bg-gradient-to-b from-muted/10 to-muted/20 rounded-lg border mb-4 min-h-[300px] max-h-[400px]">
+                {chatMessages.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                      <MessageCircle className="w-8 h-8 text-primary/60" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">Mulai Percakapan</h3>
+                    <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+                      Gunakan template pertanyaan di bawah atau tanyakan langsung tentang performa campaign, strategi influencer, dan insights lainnya
+                    </p>
+                  </div>
+                ) : (
+                  chatMessages.map((message, index) => (
+                    <div
+                      key={index}
+                      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`max-w-[85%] p-4 rounded-2xl text-sm shadow-sm ${
+                          message.role === 'user'
+                            ? 'bg-primary text-primary-foreground rounded-br-md'
+                            : 'bg-white border border-border text-foreground rounded-bl-md shadow-md'
+                        }`}
+                      >
+                        <div className="whitespace-pre-line leading-relaxed">{message.content}</div>
+                      </div>
+                    </div>
+                  ))
+                )}
+                {isChatLoading && (
+                  <div className="flex justify-start">
+                    <div className="bg-white border border-border p-4 rounded-2xl rounded-bl-md shadow-md">
+                      <div className="flex items-center space-x-3">
+                        <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                        <span className="text-sm text-muted-foreground">AI sedang menganalisis data Anda...</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Template Questions - Compact Layout */}
+              <div className="flex-shrink-0 space-y-3 mb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Sparkles className="w-4 h-4 text-primary" />
+                    <p className="text-sm font-medium text-foreground">Template Pertanyaan:</p>
+                    {isLoadingTemplates && (
+                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                    )}
+                  </div>
+                  {templateQuestions.length > 0 && !isLoadingTemplates && (
+                    <button
+                      onClick={() => {
+                        const campaignDetail = campaigns.find(c => c.brief_id === selectedCampaignDetail)
+                        if (campaignDetail) {
+                          generateTemplateQuestions(campaignDetail, campaignDetail.recommendation_data)
+                        }
+                      }}
+                      disabled={isLoadingTemplates}
+                      className="flex items-center space-x-1 px-3 py-1.5 text-xs bg-primary/10 hover:bg-primary/20 text-primary rounded-lg transition-colors disabled:opacity-50"
+                      title="Refresh pertanyaan template"
+                    >
+                      <RefreshCw className="w-3 h-3" />
+                      <span>Refresh</span>
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 gap-3 max-h-[200px] overflow-y-auto">
+                  {templateQuestions.length > 0 ? (
+                    templateQuestions.map((template, index) => {
+                      // Map icon string to actual icon component
+                      const getIconComponent = (iconName: string) => {
+                        const iconMap: { [key: string]: any } = {
+                          BarChart3, DollarSign, Crown, TrendingUp, Users, Target, Zap, Star, Trophy, Shield, 
+                          MessageCircle, PieChart, Activity, Heart, Eye, Megaphone
+                        }
+                        return iconMap[iconName] || BarChart3
+                      }
+
+                      // Map color to Tailwind classes
+                      const getColorClasses = (color: string) => {
+                        const colorMap: { [key: string]: string } = {
+                          blue: 'from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-150 border-blue-200 hover:border-blue-300',
+                          green: 'from-green-50 to-green-100 hover:from-green-100 hover:to-green-150 border-green-200 hover:border-green-300',
+                          purple: 'from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-150 border-purple-200 hover:border-purple-300',
+                          orange: 'from-orange-50 to-orange-100 hover:from-orange-100 hover:to-orange-150 border-orange-200 hover:border-orange-300',
+                          pink: 'from-pink-50 to-pink-100 hover:from-pink-100 hover:to-pink-150 border-pink-200 hover:border-pink-300',
+                          indigo: 'from-indigo-50 to-indigo-100 hover:from-indigo-100 hover:to-indigo-150 border-indigo-200 hover:border-indigo-300'
+                        }
+                        return colorMap[color] || colorMap.blue
+                      }
+
+                      const getIconColorClass = (color: string) => {
+                        const colorMap: { [key: string]: string } = {
+                          blue: 'bg-blue-500/10 group-hover:bg-blue-500/20 text-blue-600',
+                          green: 'bg-green-500/10 group-hover:bg-green-500/20 text-green-600',
+                          purple: 'bg-purple-500/10 group-hover:bg-purple-500/20 text-purple-600',
+                          orange: 'bg-orange-500/10 group-hover:bg-orange-500/20 text-orange-600',
+                          pink: 'bg-pink-500/10 group-hover:bg-pink-500/20 text-pink-600',
+                          indigo: 'bg-indigo-500/10 group-hover:bg-indigo-500/20 text-indigo-600'
+                        }
+                        return colorMap[color] || colorMap.blue
+                      }
+
+                      const getTextColorClass = (color: string) => {
+                        const colorMap: { [key: string]: string } = {
+                          blue: 'text-blue-800',
+                          green: 'text-green-800',
+                          purple: 'text-purple-800',
+                          orange: 'text-orange-800',
+                          pink: 'text-pink-800',
+                          indigo: 'text-indigo-800'
+                        }
+                        return colorMap[color] || colorMap.blue
+                      }
+
+                      const IconComponent = getIconComponent(template.icon)
+
+                      return (
+                        <button 
+                          key={index}
+                          onClick={() => handleTemplateQuestion(template.question)}
+                          className={`text-left p-3 bg-gradient-to-r ${getColorClasses(template.color)} border transition-all duration-200 group rounded-lg`}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors flex-shrink-0 ${getIconColorClass(template.color)}`}>
+                              <IconComponent className="w-3 h-3" />
+                            </div>
+                            <span className={`text-sm font-medium leading-relaxed ${getTextColorClass(template.color)}`}>
+                              {template.question}
+                            </span>
+                          </div>
+                        </button>
+                      )
+                    })
+                  ) : templateQuestionsError ? (
+                    // Error state when Gemini fails to generate questions
+                    <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                      <div className="flex items-start space-x-3">
+                        <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1">
+                          <h5 className="text-sm font-medium text-red-800 mb-2">
+                            Gagal Menghasilkan Template Pertanyaan
+                          </h5>
+                          <p className="text-sm text-red-600 mb-3">
+                            {templateQuestionsError}
+                          </p>
+                          <button
+                            onClick={() => {
+                              const campaignDetail = campaigns.find(c => c.brief_id === selectedCampaignDetail)
+                              if (campaignDetail) {
+                                generateTemplateQuestions(campaignDetail, campaignDetail.recommendation_data)
+                              }
+                            }}
+                            className="text-sm bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1.5 rounded-lg transition-colors flex items-center space-x-2"
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                            <span>Coba Lagi</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : isLoadingTemplates ? (
+                    // Loading state for template questions
+                    <>
+                      {[1, 2, 3].map((i) => (
+                        <div
+                          key={i}
+                          className="p-3 bg-gray-50 border border-gray-200 rounded-lg animate-pulse"
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className="w-6 h-6 bg-gray-200 rounded-full"></div>
+                            <div className="flex-1 h-4 bg-gray-200 rounded"></div>
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  ) : (
+                    // Empty state when no questions are available
+                    <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <MessageSquare className="w-5 h-5 text-gray-400" />
+                        <p className="text-sm text-gray-600">
+                          Tidak ada template pertanyaan tersedia. Silakan ketik pertanyaan Anda sendiri.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Chat Input - Fixed at bottom */}
+              <form onSubmit={handleChatSubmit} className="flex-shrink-0 mt-2">
+                <div className="flex items-center space-x-2 p-3 border border-muted-foreground/20 hover:border-primary/30 focus-within:border-primary/50 rounded-lg bg-background transition-colors">
+                  <input 
+                    type="text"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    placeholder="Tanyakan tentang campaign ini..."
+                    className="flex-1 bg-transparent border-none outline-none text-sm placeholder:text-muted-foreground"
+                    disabled={isChatLoading}
+                  />
+                  <Button 
+                    type="submit" 
+                    size="sm" 
+                    disabled={!chatInput.trim() || isChatLoading}
+                    className="px-3 py-1.5 h-auto flex-shrink-0"
+                  >
+                    {isChatLoading ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Send className="w-3 h-3" />
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     )
   }
@@ -2623,56 +3447,56 @@ export default function BrandDashboard() {
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
-              {/* Top Row: Upcoming Campaigns Schedule & AI Dashboard Insights */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="bg-white border hover:shadow-lg transition-shadow duration-200">
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Calendar className="w-5 h-5 mr-2" />
-                      Upcoming Campaigns Schedule
-                    </CardTitle>
-                    <CardDescription>Campaign yang akan datang dan deadline penting</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {isLoadingCampaigns ? (
-                        <div className="flex items-center justify-center py-8">
-                          <Loader2 className="w-6 h-6 animate-spin mr-2" />
-                          <span className="text-muted-foreground">Loading campaigns...</span>
-                        </div>
-                      ) : campaigns.length === 0 ? (
-                        <div className="text-center py-8">
-                          <p className="text-muted-foreground">Belum ada campaign yang dibuat</p>
-                          <Button 
-                            variant="outline" 
-                            onClick={() => setIsCreateModalOpen(true)}
-                            className="mt-2"
-                          >
-                            <Plus className="w-4 h-4 mr-2" />
-                            Buat Campaign Pertama
-                          </Button>
-                        </div>
-                      ) : (
-                        campaigns.slice(0, 5).map((campaign) => (
+              {/* Upcoming Campaigns Schedule - Full Width */}
+              <Card className="bg-white border hover:shadow-lg transition-shadow duration-200">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Calendar className="w-5 h-5 mr-2" />
+                    Upcoming Campaigns Schedule
+                  </CardTitle>
+                  <CardDescription>Campaign yang akan datang dan deadline penting</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {isLoadingCampaigns ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="w-6 h-6 animate-spin mr-2" />
+                        <span className="text-muted-foreground">Loading campaigns...</span>
+                      </div>
+                    ) : campaigns.length === 0 ? (
+                      <div className="text-center py-8">
+                        <p className="text-muted-foreground">Belum ada campaign yang dibuat</p>
+                        <Button 
+                          variant="outline" 
+                          onClick={() => setIsCreateModalOpen(true)}
+                          className="mt-2"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Buat Campaign Pertama
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        {campaigns.slice(0, 8).map((campaign) => (
                           <div 
                             key={campaign.id}
                             onClick={() => openCampaignDetail(campaign.brief_id)}
-                            className="flex items-center justify-between p-3 bg-muted border rounded-lg cursor-pointer hover:shadow-md hover:bg-muted/80 transition-all duration-200"
+                            className="flex flex-col justify-between p-3 bg-muted border rounded-lg cursor-pointer hover:shadow-md hover:bg-muted/80 transition-all duration-200"
                           >
-                            <div className="flex items-center space-x-3">
-                              <div className="w-2 h-2 bg-primary rounded-full"></div>
-                              <div>
+                            <div className="space-y-2">
+                              <div className="flex items-center space-x-2">
+                                <div className="w-2 h-2 bg-primary rounded-full"></div>
                                 <h4 className="font-semibold text-sm flex items-center">
                                   {campaign.title}
                                   {campaign.has_recommendations && (
                                     <Brain className="w-3 h-3 ml-1 text-primary" />
                                   )}
                                 </h4>
-                                <p className="text-xs text-muted-foreground">{campaign.phase}</p>
-                                <p className="text-xs text-muted-foreground">Due: {campaign.due_date}</p>
                               </div>
+                              <p className="text-xs text-muted-foreground">{campaign.phase}</p>
+                              <p className="text-xs text-muted-foreground">Due: {campaign.due_date}</p>
                             </div>
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-center space-x-2 mt-3">
                               <Badge variant={campaign.status === 'In Progress' ? 'default' : 'outline'} className="text-xs">
                                 {campaign.status}
                               </Badge>
@@ -2683,75 +3507,20 @@ export default function BrandDashboard() {
                               )}
                             </div>
                           </div>
-                        ))
-                      )}
-                    </div>
-                    {campaigns.length > 0 && (
-                      <div className="mt-3 p-2 bg-muted border rounded-lg">
-                        <div className="flex items-center text-xs">
-                          <Brain className="w-3 h-3 mr-1 text-primary" />
-                          <span className="text-muted-foreground">Click campaigns with AI Ready badge for recommendations</span>
-                        </div>
+                        ))}
                       </div>
                     )}
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-white border hover:shadow-lg transition-shadow duration-200">
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Brain className="w-5 h-5 mr-2" />
-                      AI Dashboard Insights
-                    </CardTitle>
-                    <CardDescription>Tanyakan tentang data dashboard Anda</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {/* Chat Icon */}
-                      <div className="flex justify-center py-4">
-                        <div className="w-14 h-14 bg-primary/10 rounded-lg flex items-center justify-center">
-                          <MessageCircle className="w-7 h-7 text-primary" />
-                        </div>
-                      </div>
-                      
-                      {/* Chat Prompt */}
-                      <div className="text-center space-y-2">
-                        <p className="text-sm text-muted-foreground">
-                          Pilih pertanyaan template atau tanyakan langsung tentang data dashboard Anda
-                        </p>
-                      </div>
-
-                      {/* Template Questions */}
-                      <div className="space-y-2">
-                        <p className="text-xs font-medium">Pertanyaan Template:</p>
-                        <button className="w-full text-left text-xs text-muted-foreground hover:text-foreground hover:bg-muted p-2 rounded border border-gray-200 hover:border-gray-300 transition-colors">
-                          • Bagaimana performa penjualan campaign ini?
-                        </button>
-                        <button className="w-full text-left text-xs text-muted-foreground hover:text-foreground hover:bg-muted p-2 rounded border border-gray-200 hover:border-gray-300 transition-colors">
-                          • Influencer mana yang paling berpotensi untuk campaign mendatang?
-                        </button>
-                        <button className="w-full text-left text-xs text-muted-foreground hover:text-foreground hover:bg-muted p-2 rounded border border-gray-200 hover:border-gray-300 transition-colors">
-                          • Apakah ada tren penurunan atau kenaikan yang signifikan?
-                        </button>
-                      </div>
-
-                      {/* Chat Input */}
-                      <div className="pt-1">
-                        <div className="flex items-center space-x-2 p-2 border rounded-lg bg-muted/20">
-                          <input 
-                            type="text" 
-                            placeholder="Tanyakan tentang data dashboard..."
-                            className="flex-1 bg-transparent border-none outline-none text-xs placeholder:text-muted-foreground"
-                          />
-                          <Button size="sm" variant="ghost" className="p-1">
-                            <Send className="w-3 h-3" />
-                          </Button>
-                        </div>
+                  </div>
+                  {campaigns.length > 0 && (
+                    <div className="mt-4 p-3 bg-muted border rounded-lg">
+                      <div className="flex items-center text-xs">
+                        <Brain className="w-3 h-3 mr-1 text-primary" />
+                        <span className="text-muted-foreground">Click campaigns with AI Ready badge for recommendations</span>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
+                  )}
+                </CardContent>
+              </Card>
 
               {/* Recent Campaigns */}
               <div className="grid grid-cols-1 gap-6">
