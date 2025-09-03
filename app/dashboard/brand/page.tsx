@@ -48,6 +48,7 @@ import {
   ExternalLink,
   AlertTriangle,
   Quote,
+  Edit3,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -73,6 +74,7 @@ export default function BrandDashboard() {
   const [isGeneratingRecommendations, setIsGeneratingRecommendations] = useState(false)
   const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date())
   const [showApiResponse, setShowApiResponse] = useState(false) // New state for API response toggle
+  const [expandedInfluencerTabs, setExpandedInfluencerTabs] = useState<{[key: string]: boolean}>({}) // State for expanded tabs per influencer
 
   // Calculate dynamic dashboard stats
   const dashboardStats = {
@@ -867,7 +869,7 @@ export default function BrandDashboard() {
             )}
 
             {/* Campaign Summary Card - Enhanced */}
-            {aiData.brief && (
+            {/* {aiData.brief && (
               <div className="mb-6">
                 <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
                   <CardHeader>
@@ -915,7 +917,7 @@ export default function BrandDashboard() {
                   </CardContent>
                 </Card>
               </div>
-            )}
+            )} */}
 
             {/* Campaign Brief Card - Sesuai gambar */}
             <div className="mb-6">
@@ -1043,79 +1045,6 @@ export default function BrandDashboard() {
               </Card>
             </div>
 
-            {/* AI Scoring Strategy Card */}
-            {aiData.metadata?.adaptive_weights_info && (
-              <div className="mb-6">
-                <Card className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
-                  <CardHeader>
-                    <CardTitle className="flex items-center text-lg">
-                      <Target className="w-5 h-5 mr-2 text-purple-600" />
-                      AI Scoring Strategy
-                    </CardTitle>
-                    <CardDescription>
-                      Adaptive weights applied based on campaign objectives
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Applied Adjustments */}
-                      <div>
-                        <h5 className="font-semibold text-sm mb-3 flex items-center">
-                          <Zap className="w-4 h-4 mr-2 text-purple-600" />
-                          Applied Adjustments ({aiData.metadata.adaptive_weights_info.total_adjustments})
-                        </h5>
-                        <div className="space-y-2">
-                          {aiData.metadata.adaptive_weights_info.applied_adjustments?.map((adjustment: string, index: number) => (
-                            <div key={index} className="flex items-center p-2 bg-white rounded border border-purple-100">
-                              <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
-                              <span className="text-sm">{adjustment}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Final Weights */}
-                      <div>
-                        <h5 className="font-semibold text-sm mb-3 flex items-center">
-                          <BarChart3 className="w-4 h-4 mr-2 text-purple-600" />
-                          Final Scoring Weights
-                        </h5>
-                        <div className="space-y-3">
-                          <div>
-                            <div className="flex justify-between text-sm mb-1">
-                              <span>Persona Fit</span>
-                              <span className="font-semibold">{((aiData.metadata.adaptive_weights_info.final_weights?.persona_fit || 0) * 100).toFixed(1)}%</span>
-                            </div>
-                            <Progress value={(aiData.metadata.adaptive_weights_info.final_weights?.persona_fit || 0) * 100} className="h-2" />
-                          </div>
-                          <div>
-                            <div className="flex justify-between text-sm mb-1">
-                              <span>Audience Fit</span>
-                              <span className="font-semibold">{((aiData.metadata.adaptive_weights_info.final_weights?.audience_fit || 0) * 100).toFixed(1)}%</span>
-                            </div>
-                            <Progress value={(aiData.metadata.adaptive_weights_info.final_weights?.audience_fit || 0) * 100} className="h-2" />
-                          </div>
-                          <div>
-                            <div className="flex justify-between text-sm mb-1">
-                              <span>Performance Prediction</span>
-                              <span className="font-semibold">{((aiData.metadata.adaptive_weights_info.final_weights?.performance_pred || 0) * 100).toFixed(1)}%</span>
-                            </div>
-                            <Progress value={(aiData.metadata.adaptive_weights_info.final_weights?.performance_pred || 0) * 100} className="h-2" />
-                          </div>
-                          <div>
-                            <div className="flex justify-between text-sm mb-1">
-                              <span>Budget Efficiency</span>
-                              <span className="font-semibold">{((aiData.metadata.adaptive_weights_info.final_weights?.budget_efficiency || 0) * 100).toFixed(1)}%</span>
-                            </div>
-                            <Progress value={(aiData.metadata.adaptive_weights_info.final_weights?.budget_efficiency || 0) * 100} className="h-2" />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
 
             {/* Top Recommendations - Enhanced design dengan data real */}
             <div className="space-y-4">
@@ -1181,32 +1110,32 @@ export default function BrandDashboard() {
 
                     {/* Performance Metrics Grid */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                      <div className="text-center p-3 bg-green-50 border border-green-100 rounded-lg">
-                        <div className="text-lg font-bold text-green-700">
+                      <div className="text-center p-3 bg-muted/30 border border-border rounded-lg">
+                        <div className="text-lg font-bold text-foreground">
                           {(influencer.performance_metrics?.engagement_rate * 100 || 0).toFixed(1)}%
                         </div>
-                        <div className="text-xs text-green-600 font-medium">Engagement Rate</div>
+                        <div className="text-xs text-muted-foreground font-medium">Engagement Rate</div>
                       </div>
                       
-                      <div className="text-center p-3 bg-blue-50 border border-blue-100 rounded-lg">
-                        <div className="text-lg font-bold text-blue-700">
+                      <div className="text-center p-3 bg-muted/30 border border-border rounded-lg">
+                        <div className="text-lg font-bold text-foreground">
                           {(influencer.performance_metrics?.authenticity_score * 100 || 0).toFixed(0)}%
                         </div>
-                        <div className="text-xs text-blue-600 font-medium">Authenticity</div>
+                        <div className="text-xs text-muted-foreground font-medium">Authenticity</div>
                       </div>
                       
-                      <div className="text-center p-3 bg-purple-50 border border-purple-100 rounded-lg">
-                        <div className="text-lg font-bold text-purple-700">
+                      <div className="text-center p-3 bg-muted/30 border border-border rounded-lg">
+                        <div className="text-lg font-bold text-foreground">
                           {(influencer.performance_metrics?.reach_potential * 100 || 0).toFixed(1)}%
                         </div>
-                        <div className="text-xs text-purple-600 font-medium">Reach Potential</div>
+                        <div className="text-xs text-muted-foreground font-medium">Reach Potential</div>
                       </div>
                       
-                      <div className="text-center p-3 bg-orange-50 border border-orange-100 rounded-lg">
-                        <div className="text-lg font-bold text-orange-700">
+                      <div className="text-center p-3 bg-muted/30 border border-border rounded-lg">
+                        <div className="text-lg font-bold text-foreground">
                           {influencer.optimal_content_mix?.total_impact?.toFixed(1) || '0.0'}
                         </div>
-                        <div className="text-xs text-orange-600 font-medium">Projected Impact</div>
+                        <div className="text-xs text-muted-foreground font-medium">Projected Impact</div>
                       </div>
                     </div>
 
@@ -1226,31 +1155,6 @@ export default function BrandDashboard() {
                                 Rp {(influencer.optimal_content_mix.total_cost / 1000000).toFixed(1)}M
                               </span>
                             </div>
-                            {/* Hanya tampilkan budget status jika ada remaining_budget */}
-                            {influencer.optimal_content_mix.remaining_budget !== undefined && (
-                              <>
-                                <div className="flex justify-between text-sm">
-                                  <span>Budget Status:</span>
-                                  <span className={`font-semibold ${
-                                    influencer.optimal_content_mix.remaining_budget >= 0 
-                                      ? 'text-green-600' 
-                                      : 'text-red-600'
-                                  }`}>
-                                    {influencer.optimal_content_mix.remaining_budget >= 0 ? 'Under Budget' : 'Over Budget'}
-                                  </span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                  <span>Remaining:</span>
-                                  <span className={`font-semibold ${
-                                    influencer.optimal_content_mix.remaining_budget >= 0 
-                                      ? 'text-green-600' 
-                                      : 'text-red-600'
-                                  }`}>
-                                    Rp {Math.abs(influencer.optimal_content_mix.remaining_budget / 1000000).toFixed(1)}M
-                                  </span>
-                                </div>
-                              </>
-                            )}
                           </div>
                         </div>
                       )}
@@ -1298,62 +1202,144 @@ export default function BrandDashboard() {
                       )}
                     </div>
 
-                    {/* Detailed Tabs */}
-                    <Tabs defaultValue="insights" className="w-full">
-                      <TabsList className="grid w-full grid-cols-4 bg-gray-50">
-                        <TabsTrigger value="insights" className="text-xs data-[state=active]:bg-white">
-                          <MessageCircle className="w-3 h-3 mr-1" />
-                          Caption Behavior
-                        </TabsTrigger>
-                        <TabsTrigger value="scores" className="text-xs data-[state=active]:bg-white">
-                          <BarChart3 className="w-3 h-3 mr-1" />
-                          Score Breakdown
-                        </TabsTrigger>
-                        <TabsTrigger value="performance" className="text-xs data-[state=active]:bg-white">
-                          <TrendingUp className="w-3 h-3 mr-1" />
-                          Performance
-                        </TabsTrigger>
-                        <TabsTrigger value="strategy" className="text-xs data-[state=active]:bg-white">
-                          <Target className="w-3 h-3 mr-1" />
-                          Strategy
-                        </TabsTrigger>
-                      </TabsList>
-                      
-                      <TabsContent value="insights" className="mt-4 p-4 bg-gray-50 rounded-lg">
-                        <div className="space-y-4">
-                          <h5 className="font-semibold text-sm flex items-center">
-                            <MessageCircle className="w-4 h-4 mr-2" />
-                            Caption Behavior Analysis
-                          </h5>
-                          {influencer.insights ? (
-                            (() => {
-                              const parsed = parseCaptionBehavior(influencer.insights)
-                              if (parsed) {
-                                return (
-                                  <div className="space-y-4">
-                                    {/* Comment Examples by Type - Priority Section */}
-                                    {(parsed.relatableExamples || parsed.viralExamples || parsed.supportiveExamples) && (
-                                      <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg p-5 border-l-4 border-emerald-400">
-                                        <h6 className="font-bold text-lg mb-4 flex items-center text-emerald-800">
-                                          <Quote className="w-5 h-5 mr-2" />
-                                          Comment Examples by Type
-                                          <Badge variant="outline" className="ml-2 bg-emerald-100 text-emerald-700 border-emerald-300">
-                                            Primary Insights
-                                          </Badge>
-                                        </h6>
+                    {/* Collapsible Detailed Analysis */}
+                    <div className="border-t pt-4">
+                      <Button
+                        variant="ghost"
+                        onClick={() => {
+                          const influencerKey = `${influencer.username}_${index}`
+                          setExpandedInfluencerTabs(prev => ({
+                            ...prev,
+                            [influencerKey]: !prev[influencerKey]
+                          }))
+                        }}
+                        className="w-full justify-between p-3 h-auto bg-muted/20 hover:bg-muted/40"
+                      >
+                        <span className="flex items-center text-sm font-medium">
+                          <BarChart3 className="w-4 h-4 mr-2" />
+                          Detailed Analysis & Insights
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {expandedInfluencerTabs[`${influencer.username}_${index}`] ? 'Hide Details' : 'Show Details'}
+                        </span>
+                      </Button>
 
+                      {expandedInfluencerTabs[`${influencer.username}_${index}`] && (
+                        <div className="mt-4">
+                          <Tabs defaultValue="insights" className="w-full">
+                            <TabsList className="grid w-full grid-cols-4 bg-muted/30">
+                              <TabsTrigger value="insights" className="text-xs data-[state=active]:bg-card">
+                                <MessageCircle className="w-3 h-3 mr-1" />
+                                Social Media Analysis
+                              </TabsTrigger>
+                              <TabsTrigger value="scores" className="text-xs data-[state=active]:bg-card">
+                                <BarChart3 className="w-3 h-3 mr-1" />
+                                Score Breakdown
+                              </TabsTrigger>
+                              <TabsTrigger value="performance" className="text-xs data-[state=active]:bg-card">
+                                <TrendingUp className="w-3 h-3 mr-1" />
+                                Performance
+                              </TabsTrigger>
+                              <TabsTrigger value="strategy" className="text-xs data-[state=active]:bg-card">
+                                <Target className="w-3 h-3 mr-1" />
+                                Strategy
+                              </TabsTrigger>
+                            </TabsList>
+                            
+                            <TabsContent value="insights" className="mt-4 p-4 bg-muted/20 rounded-lg">
+                              <div className="space-y-4">
+                                <h5 className="font-semibold text-sm flex items-center">
+                                  <MessageCircle className="w-4 h-4 mr-2" />
+                                  Influencer Social Media Analysis
+                                </h5>
+                                {influencer.insights ? (
+                                  (() => {
+                                    const parsed = parseCaptionBehavior(influencer.insights)
+                                    if (parsed) {
+                                      return (
                                         <div className="space-y-4">
-                                          {/* Relatable Engagement */}
-                                          {parsed.relatableExamples && parsed.relatableExamples.length > 0 && (
-                                            <div className="bg-white rounded-lg p-4 border-l-4 border-green-400 shadow-sm">
-                                              <h7 className="font-semibold text-sm mb-3 text-green-700 flex items-center">
-                                                <Heart className="w-4 h-4 mr-2" />
-                                                Relatable Engagement Comments
-                                              </h7>
-                                              <div className="space-y-2">
-                                                {parsed.relatableExamples.map((comment: string, index: number) => (
-                                                  <div key={index} className="bg-green-50 p-3 rounded-lg border border-green-200">
-                                                    <p className="text-sm text-green-800 italic font-medium">
+                                          {/* Comment Examples by Type - Main Section */}
+                                          {(parsed.relatableExamples || parsed.viralExamples || parsed.supportiveExamples) && (
+                                            <div className="bg-muted/30 rounded-lg p-5 border border-border">
+                                              <h6 className="font-bold text-lg mb-4 flex items-center text-foreground">
+                                                <Quote className="w-5 h-5 mr-2" />
+                                                Comment Behavior Analysis
+                                           
+                                              </h6>
+
+                                              <div className="space-y-4">
+                                                {/* Relatable Engagement */}
+                                                {parsed.relatableExamples && parsed.relatableExamples.length > 0 && (
+                                                  <div className="bg-card rounded-lg p-4 border-l-4 border-primary/20 shadow-sm">
+                                                    <div className="font-semibold text-sm mb-3 text-foreground flex items-center">
+                                                      <Heart className="w-4 h-4 mr-2 text-muted-foreground" />
+                                                      Relatable Engagement ({parsed.relatableExamples.length} examples)
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                      {parsed.relatableExamples.slice(0, 2).map((comment: string, index: number) => (
+                                                        <div key={index} className="bg-muted/20 p-3 rounded-lg border border-border">
+                                                          <p className="text-sm text-muted-foreground italic font-medium">
+                                                            "{comment}"
+                                                          </p>
+                                                        </div>
+                                                      ))}
+                                                    </div>
+                                                  </div>
+                                                )}
+
+                                                {/* Social Virality */}
+                                                {parsed.viralExamples && parsed.viralExamples.length > 0 && (
+                                                  <div className="bg-card rounded-lg p-4 border-l-4 border-primary/20 shadow-sm">
+                                                    <div className="font-semibold text-sm mb-3 text-foreground flex items-center">
+                                                      <TrendingUp className="w-4 h-4 mr-2 text-muted-foreground" />
+                                                      Social Virality ({parsed.viralExamples.length} examples)
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                      {parsed.viralExamples.slice(0, 2).map((comment: string, index: number) => (
+                                                        <div key={index} className="bg-muted/20 p-3 rounded-lg border border-border">
+                                                          <p className="text-sm text-muted-foreground italic font-medium">
+                                                            "{comment}"
+                                                          </p>
+                                                        </div>
+                                                      ))}
+                                                    </div>
+                                                  </div>
+                                                )}
+
+                                                {/* Supportive Sentiment */}
+                                                {parsed.supportiveExamples && parsed.supportiveExamples.length > 0 && (
+                                                  <div className="bg-card rounded-lg p-4 border-l-4 border-primary/20 shadow-sm">
+                                                    <div className="font-semibold text-sm mb-3 text-foreground flex items-center">
+                                                      <Shield className="w-4 h-4 mr-2 text-muted-foreground" />
+                                                      Supportive Sentiment ({parsed.supportiveExamples.length} examples)
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                      {parsed.supportiveExamples.slice(0, 2).map((comment: string, index: number) => (
+                                                        <div key={index} className="bg-muted/20 p-3 rounded-lg border border-border">
+                                                          <p className="text-sm text-muted-foreground italic font-medium">
+                                                            "{comment}"
+                                                          </p>
+                                                        </div>
+                                                      ))}
+                                                    </div>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            </div>
+                                          )}
+
+                                          {/* Fallback - General Comment Examples if no categorized data */}
+                                          {(!parsed.relatableExamples && !parsed.viralExamples && !parsed.supportiveExamples) && 
+                                           parsed.allCommentExamples && parsed.allCommentExamples.length > 0 && (
+                                            <div className="bg-muted/30 rounded-lg p-4 border border-border">
+                                              <h6 className="font-semibold text-sm mb-3 flex items-center">
+                                                <Quote className="w-4 h-4 mr-2 text-muted-foreground" />
+                                                Representative Audience Comments
+                                              </h6>
+                                              <div className="space-y-3">
+                                                {parsed.allCommentExamples.map((comment: string, index: number) => (
+                                                  <div key={index} className="bg-card p-3 rounded-lg border-l-2 border-primary/20">
+                                                    <p className="text-sm text-muted-foreground italic font-medium">
                                                       "{comment}"
                                                     </p>
                                                   </div>
@@ -1362,352 +1348,292 @@ export default function BrandDashboard() {
                                             </div>
                                           )}
 
-                                          {/* Social Virality */}
-                                          {parsed.viralExamples && parsed.viralExamples.length > 0 && (
-                                            <div className="bg-white rounded-lg p-4 border-l-4 border-pink-400 shadow-sm">
-                                              <h7 className="font-semibold text-sm mb-3 text-pink-700 flex items-center">
-                                                <TrendingUp className="w-4 h-4 mr-2" />
-                                                Social Virality Comments
-                                              </h7>
-                                              <div className="space-y-2">
-                                                {parsed.viralExamples.map((comment: string, index: number) => (
-                                                  <div key={index} className="bg-pink-50 p-3 rounded-lg border border-pink-200">
-                                                    <p className="text-sm text-pink-800 italic font-medium">
-                                                      "{comment}"
-                                                    </p>
-                                                  </div>
-                                                ))}
-                                              </div>
-                                            </div>
-                                          )}
-
-                                          {/* Supportive Sentiment */}
-                                          {parsed.supportiveExamples && parsed.supportiveExamples.length > 0 && (
-                                            <div className="bg-white rounded-lg p-4 border-l-4 border-blue-400 shadow-sm">
-                                              <h7 className="font-semibold text-sm mb-3 text-blue-700 flex items-center">
-                                                <Shield className="w-4 h-4 mr-2" />
-                                                Supportive Sentiment Comments
-                                              </h7>
-                                              <div className="space-y-2">
-                                                {parsed.supportiveExamples.map((comment: string, index: number) => (
-                                                  <div key={index} className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                                                    <p className="text-sm text-blue-800 italic font-medium">
-                                                      "{comment}"
-                                                    </p>
-                                                  </div>
-                                                ))}
-                                              </div>
-                                            </div>
-                                          )}
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    {/* Fallback - General Comment Examples if no categorized data */}
-                                    {(!parsed.relatableExamples && !parsed.viralExamples && !parsed.supportiveExamples) && 
-                                     parsed.allCommentExamples && parsed.allCommentExamples.length > 0 && (
-                                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border-l-4 border-blue-400">
-                                        <h6 className="font-semibold text-sm mb-3 flex items-center">
-                                          <Quote className="w-4 h-4 mr-2 text-blue-600" />
-                                          Representative Audience Comments
-                                        </h6>
-                                        <div className="space-y-3">
-                                          {parsed.allCommentExamples.map((comment: string, index: number) => (
-                                            <div key={index} className="bg-white p-3 rounded-lg border-l-2 border-blue-300">
-                                              <p className="text-sm text-gray-700 italic font-medium">
-                                                "{comment}"
-                                              </p>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    {/* Comment Quality Section - Secondary Priority */}
-                                    {parsed.commentQuality && (
-                                      <div className="bg-white rounded-lg p-4 border">
-                                        <h6 className="font-medium text-sm mb-3">
-                                          Comment Quality Analysis
-                                        </h6>
-                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                                          <div className="text-center p-2 bg-blue-50 rounded">
-                                            <div className="text-lg font-bold text-blue-600">{parsed.commentQuality.total}</div>
-                                            <div className="text-xs text-muted-foreground">Total Comments</div>
-                                          </div>
-                                          <div className="text-center p-2 bg-green-50 rounded">
-                                            <div className="text-lg font-bold text-green-600">{parsed.commentQuality.supportive}%</div>
-                                            <div className="text-xs text-muted-foreground">Supportive</div>
-                                          </div>
-                                          <div className="text-center p-2 bg-yellow-50 rounded">
-                                            <div className="text-lg font-bold text-yellow-600">{parsed.commentQuality.passive}%</div>
-                                            <div className="text-xs text-muted-foreground">Passive</div>
-                                          </div>
-                                          <div className="text-center p-2 bg-purple-50 rounded">
-                                            <div className="text-lg font-bold text-purple-600">{parsed.commentQuality.highValue}%</div>
-                                            <div className="text-xs text-muted-foreground">High-Value Rate</div>
-                                          </div>
-                                        </div>
-                                        {parsed.commentQuality.highValue < 20 && (
-                                          <div className="text-xs text-orange-600 bg-orange-50 p-2 rounded flex items-center">
-                                            <AlertTriangle className="w-3 h-3 mr-1" />
-                                            Low high-value rate indicates mostly praise or passive engagement
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
-
-                                    {/* Caption Behavior Grid */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                      {/* CTA Usage */}
-                                      {parsed.cta && (
-                                        <div className="bg-white rounded-lg p-4 border">
-                                          <h6 className="font-medium text-sm mb-3">
-                                            Call-to-Action Usage
-                                          </h6>
-                                          <div className="text-center mb-3">
-                                            <div className="text-2xl font-bold text-blue-600">
-                                              {parsed.cta.used}/{parsed.cta.total}
-                                            </div>
-                                            <div className="text-sm text-muted-foreground">
-                                              {parsed.cta.percentage}% of captions
-                                            </div>
-                                          </div>
-                                          <Progress value={parseFloat(parsed.cta.percentage)} className="h-2 mb-2" />
-                                          {parsed.ctaExample && (
-                                            <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded border-l-2 border-blue-300">
-                                              <strong>Example:</strong> "{parsed.ctaExample}"
-                                            </div>
-                                          )}
-                                        </div>
-                                      )}
-
-                                      {/* Tone of Voice */}
-                                      {parsed.tone && (
-                                        <div className="bg-white rounded-lg p-4 border">
-                                          <h6 className="font-medium text-sm mb-3">
-                                            Tone of Voice
-                                          </h6>
-                                          <div className="text-center mb-3">
-                                            <div className="text-lg font-semibold text-purple-600 capitalize">
-                                              {parsed.tone}
-                                            </div>
-                                            <div className="text-sm text-muted-foreground">Dominant Style</div>
-                                          </div>
-                                          {parsed.toneExample && (
-                                            <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded border-l-2 border-purple-300">
-                                              <strong>Example:</strong> "{parsed.toneExample}"
-                                            </div>
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
-
-                                    {/* Engagement Distribution */}
-                                    {parsed.labels && Object.keys(parsed.labels).length > 0 && (
-                                      <div className="bg-white rounded-lg p-4 border">
-                                        <h6 className="font-medium text-sm mb-3">
-                                          Content Label Distribution
-                                        </h6>
-                                        <div className="space-y-2">
-                                          {Object.entries(parsed.labels).map(([label, count]: [string, any]) => {
-                                            const total = Object.values(parsed.labels).reduce((a: number, b: any) => a + (b as number), 0)
-                                            const percentage = (((count as number) / total) * 100).toFixed(1)
-                                            return (
-                                              <div key={label} className="flex items-center justify-between">
-                                                <span className="text-sm capitalize">{label.replace(/[_-]/g, ' ')}</span>
-                                                <div className="flex items-center space-x-2">
-                                                  <div className="w-20 bg-gray-200 rounded-full h-2">
-                                                    <div 
-                                                      className="bg-blue-600 h-2 rounded-full" 
-                                                      style={{width: `${percentage}%`}}
-                                                    ></div>
-                                                  </div>
-                                                  <span className="text-xs font-medium w-8">{count}</span>
+                                          {/* Comment Quality Section - Secondary Priority */}
+                                          {parsed.commentQuality && (
+                                            <div className="bg-card rounded-lg p-4 border border-border">
+                                              <h6 className="font-medium text-sm mb-3">
+                                                Comment Quality Analysis
+                                              </h6>
+                                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                                                <div className="text-center p-2 bg-muted/20 rounded">
+                                                  <div className="text-lg font-bold text-foreground">{parsed.commentQuality.total}</div>
+                                                  <div className="text-xs text-muted-foreground">Total Comments</div>
+                                                </div>
+                                                <div className="text-center p-2 bg-muted/20 rounded">
+                                                  <div className="text-lg font-bold text-foreground">{parsed.commentQuality.supportive}%</div>
+                                                  <div className="text-xs text-muted-foreground">Supportive</div>
+                                                </div>
+                                                <div className="text-center p-2 bg-muted/20 rounded">
+                                                  <div className="text-lg font-bold text-foreground">{parsed.commentQuality.passive}%</div>
+                                                  <div className="text-xs text-muted-foreground">Passive</div>
+                                                </div>
+                                                <div className="text-center p-2 bg-muted/20 rounded">
+                                                  <div className="text-lg font-bold text-foreground">{parsed.commentQuality.highValue}%</div>
+                                                  <div className="text-xs text-muted-foreground">High-Value Rate</div>
                                                 </div>
                                               </div>
-                                            )
-                                          })}
-                                        </div>
-                                      </div>
-                                    )}
+                                              {parsed.commentQuality.highValue < 20 && (
+                                                <div className="text-xs text-orange-600 bg-orange-50 p-2 rounded flex items-center">
+                                                  <AlertTriangle className="w-3 h-3 mr-1" />
+                                                  Low high-value rate indicates mostly praise or passive engagement
+                                                </div>
+                                              )}
+                                            </div>
+                                          )}
 
-                                    {/* Engagement Insights */}
-                                    {parsed.engagementCaptions && (
-                                      <div className="bg-white rounded-lg p-4 border">
-                                        <h6 className="font-medium text-sm mb-2">
-                                          Engagement Strategy
-                                        </h6>
-                                        <div className="text-sm text-gray-600">
-                                          <span className="font-semibold text-green-600">{parsed.engagementCaptions}</span> captions 
-                                          actively invite audience interaction, showing good two-way engagement efforts.
+                                          {/* Caption Analysis Section */}
+                                          <div className="bg-muted/30 rounded-lg p-5 border border-border">
+                                            <h6 className="font-bold text-lg mb-4 flex items-center text-foreground">
+                                              <Edit3 className="w-5 h-5 mr-2" />
+                                              Caption Analysis
+                                            </h6>
+                                            
+                                            {/* Caption Behavior Grid */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {/* CTA Usage */}
+                                            {parsed.cta && (
+                                              <div className="bg-card rounded-lg p-4 border border-border">
+                                                <h6 className="font-medium text-sm mb-3">
+                                                  Call-to-Action Usage
+                                                </h6>
+                                                <div className="text-center mb-3">
+                                                  <div className="text-2xl font-bold text-foreground">
+                                                    {parsed.cta.used}/{parsed.cta.total}
+                                                  </div>
+                                                  <div className="text-sm text-muted-foreground">
+                                                    {parsed.cta.percentage}% of captions
+                                                  </div>
+                                                </div>
+                                                <Progress value={parseFloat(parsed.cta.percentage)} className="h-2" />
+                                              </div>
+                                            )}
+
+                                            {/* Tone of Voice */}
+                                            {parsed.tone && (
+                                              <div className="bg-card rounded-lg p-4 border border-border">
+                                                <h6 className="font-medium text-sm mb-3">
+                                                  Tone of Voice
+                                                </h6>
+                                                <div className="text-center">
+                                                  <div className="text-lg font-semibold text-foreground capitalize">
+                                                    {parsed.tone}
+                                                  </div>
+                                                  <div className="text-sm text-muted-foreground">Dominant Style</div>
+                                                </div>
+                                              </div>
+                                            )}
+                                          </div>
+
+                                          {/* Engagement Distribution */}
+                                          {parsed.labels && Object.keys(parsed.labels).length > 0 && (
+                                            <div className="bg-card rounded-lg p-4 border border-border">
+                                              <h6 className="font-medium text-sm mb-3">
+                                                Content Label Distribution
+                                              </h6>
+                                              <div className="space-y-2">
+                                                {Object.entries(parsed.labels).map(([label, count]: [string, any]) => {
+                                                  const total = Object.values(parsed.labels).reduce((a: number, b: any) => a + (b as number), 0)
+                                                  const percentage = (((count as number) / total) * 100).toFixed(1)
+                                                  return (
+                                                    <div key={label} className="flex items-center justify-between">
+                                                      <span className="text-sm capitalize">{label.replace(/[_-]/g, ' ')}</span>
+                                                      <div className="flex items-center space-x-2">
+                                                        <div className="w-20 bg-gray-200 rounded-full h-2">
+                                                          <div 
+                                                            className="bg-primary h-2 rounded-full" 
+                                                            style={{width: `${percentage}%`}}
+                                                          ></div>
+                                                        </div>
+                                                        <span className="text-xs font-medium w-8">{count}</span>
+                                                      </div>
+                                                    </div>
+                                                  )
+                                                })}
+                                              </div>
+                                            </div>
+                                          )}
+
+                                          {/* Engagement Insights */}
+                                          {parsed.engagementCaptions && (
+                                            <div className="bg-card rounded-lg p-4 border border-border">
+                                              <h6 className="font-medium text-sm mb-2">
+                                                Engagement Strategy
+                                              </h6>
+                                              <div className="text-sm text-muted-foreground">
+                                                <span className="font-semibold text-foreground">{parsed.engagementCaptions}</span> captions 
+                                                actively invite audience interaction, showing good two-way engagement efforts.
+                                              </div>
+                                            </div>
+                                          )}
+                                          </div>
                                         </div>
+                                      )
+                                    } else {
+                                      // Fallback: show original insights in formatted way
+                                      return (
+                                        <div className="text-sm text-muted-foreground leading-relaxed space-y-3 max-h-96 overflow-y-auto">
+                                          <div className="whitespace-pre-line bg-card p-4 rounded border border-border">
+                                            {influencer.insights}
+                                          </div>
+                                        </div>
+                                      )
+                                    }
+                                  })()
+                                ) : (
+                                  <div className="text-center py-6 text-muted-foreground bg-card rounded border border-border">
+                                    <MessageCircle className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
+                                    <p className="text-sm">No caption behavior analysis available for this influencer</p>
+                                  </div>
+                                )}
+                              </div>
+                            </TabsContent>
+                            
+                            <TabsContent value="scores" className="mt-4 p-4 bg-muted/20 rounded-lg">
+                              <div className="space-y-4">
+                                <h5 className="font-semibold text-sm">Detailed Score Analysis</h5>
+                                {influencer.scores ? (
+                                  <div className="grid grid-cols-2 gap-4">
+                                    {influencer.scores.audience_fit !== undefined && (
+                                      <div className="space-y-2">
+                                        <div className="flex justify-between text-sm">
+                                          <span>Audience Fit:</span>
+                                          <span className="font-semibold">{(influencer.scores.audience_fit * 100).toFixed(1)}%</span>
+                                        </div>
+                                        <Progress value={influencer.scores.audience_fit * 100} className="h-2" />
+                                      </div>
+                                    )}
+                                    {influencer.scores.persona_fit !== undefined && (
+                                      <div className="space-y-2">
+                                        <div className="flex justify-between text-sm">
+                                          <span>Persona Fit:</span>
+                                          <span className="font-semibold">{(influencer.scores.persona_fit * 100).toFixed(1)}%</span>
+                                        </div>
+                                        <Progress value={influencer.scores.persona_fit * 100} className="h-2" />
+                                      </div>
+                                    )}
+                                    {influencer.scores.performance_pred !== undefined && (
+                                      <div className="space-y-2">
+                                        <div className="flex justify-between text-sm">
+                                          <span>Performance Prediction:</span>
+                                          <span className="font-semibold">{(influencer.scores.performance_pred * 100).toFixed(1)}%</span>
+                                        </div>
+                                        <Progress value={influencer.scores.performance_pred * 100} className="h-2" />
+                                      </div>
+                                    )}
+                                    {influencer.scores.budget_efficiency !== undefined && (
+                                      <div className="space-y-2">
+                                        <div className="flex justify-between text-sm">
+                                          <span>Budget Efficiency:</span>
+                                          <span className="font-semibold">{(influencer.scores.budget_efficiency * 100).toFixed(1)}%</span>
+                                        </div>
+                                        <Progress value={influencer.scores.budget_efficiency * 100} className="h-2" />
                                       </div>
                                     )}
                                   </div>
-                                )
-                              } else {
-                                // Fallback: show original insights in formatted way
-                                return (
-                                  <div className="text-sm text-gray-700 leading-relaxed space-y-3 max-h-96 overflow-y-auto">
-                                    <div className="whitespace-pre-line bg-white p-4 rounded border">
-                                      {influencer.insights}
+                                ) : (
+                                  <div className="text-center py-6 text-muted-foreground bg-card rounded border border-border">
+                                    <BarChart3 className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
+                                    <p className="text-sm">Score breakdown not available</p>
+                                  </div>
+                                )}
+                              </div>
+                            </TabsContent>
+                            
+                            <TabsContent value="performance" className="mt-4 p-4 bg-muted/20 rounded-lg">
+                              <div className="space-y-4">
+                                <h5 className="font-semibold text-sm">Performance Metrics</h5>
+                                {influencer.performance_metrics ? (
+                                  <div className="grid grid-cols-1 gap-3">
+                                    {influencer.performance_metrics.engagement_rate && (
+                                      <div className="flex items-center justify-between p-3 bg-card rounded border border-border">
+                                        <span className="text-sm">Engagement Rate</span>
+                                        <span className="font-semibold text-foreground">
+                                          {(influencer.performance_metrics.engagement_rate * 100).toFixed(2)}%
+                                        </span>
+                                      </div>
+                                    )}
+                                    {influencer.performance_metrics.authenticity_score && (
+                                      <div className="flex items-center justify-between p-3 bg-card rounded border border-border">
+                                        <span className="text-sm">Authenticity Score</span>
+                                        <span className="font-semibold text-foreground">
+                                          {(influencer.performance_metrics.authenticity_score * 100).toFixed(1)}%
+                                        </span>
+                                      </div>
+                                    )}
+                                    {influencer.performance_metrics.reach_potential && (
+                                      <div className="flex items-center justify-between p-3 bg-card rounded border border-border">
+                                        <span className="text-sm">Reach Potential</span>
+                                        <span className="font-semibold text-foreground">
+                                          {(influencer.performance_metrics.reach_potential * 100).toFixed(1)}%
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="text-center py-6 text-muted-foreground bg-card rounded border border-border">
+                                    <BarChart3 className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
+                                    <p className="text-sm">No performance metrics available</p>
+                                  </div>
+                                )}
+                              </div>
+                            </TabsContent>
+                            
+                            <TabsContent value="strategy" className="mt-4 p-4 bg-muted/20 rounded-lg">
+                              <div className="space-y-4">
+                                <h5 className="font-semibold text-sm">Campaign Strategy Recommendations</h5>
+                                <div className="space-y-3">
+                                  {/* Hanya tampilkan strategy jika ada data yang relevan */}
+                                  {influencer.optimal_content_mix && (
+                                    <div className="p-3 bg-card rounded border border-border">
+                                      <h6 className="font-medium text-sm mb-2">Content Strategy:</h6>
+                                      <p className="text-sm text-muted-foreground">
+                                        {influencer.optimal_content_mix.reels_count > 0 && (
+                                          <>Focus on {influencer.optimal_content_mix.reels_count} Reels content </>
+                                        )}
+                                        {influencer.expertise && (
+                                          <>with {influencer.expertise} themes </>
+                                        )}
+                                        for maximum audience engagement.
+                                      </p>
                                     </div>
-                                  </div>
-                                )
-                              }
-                            })()
-                          ) : (
-                            <div className="text-center py-6 text-muted-foreground bg-white rounded border">
-                              <MessageCircle className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
-                              <p className="text-sm">No caption behavior analysis available for this influencer</p>
-                            </div>
-                          )}
-                        </div>
-                      </TabsContent>
-                      
-                      <TabsContent value="scores" className="mt-4 p-4 bg-gray-50 rounded-lg">
-                        <div className="space-y-4">
-                          <h5 className="font-semibold text-sm">Detailed Score Analysis</h5>
-                          {influencer.scores ? (
-                            <div className="grid grid-cols-2 gap-4">
-                              {influencer.scores.audience_fit !== undefined && (
-                                <div className="space-y-2">
-                                  <div className="flex justify-between text-sm">
-                                    <span>Audience Fit:</span>
-                                    <span className="font-semibold">{(influencer.scores.audience_fit * 100).toFixed(1)}%</span>
-                                  </div>
-                                  <Progress value={influencer.scores.audience_fit * 100} className="h-2" />
-                                </div>
-                              )}
-                              {influencer.scores.persona_fit !== undefined && (
-                                <div className="space-y-2">
-                                  <div className="flex justify-between text-sm">
-                                    <span>Persona Fit:</span>
-                                    <span className="font-semibold">{(influencer.scores.persona_fit * 100).toFixed(1)}%</span>
-                                  </div>
-                                  <Progress value={influencer.scores.persona_fit * 100} className="h-2" />
-                                </div>
-                              )}
-                              {influencer.scores.performance_pred !== undefined && (
-                                <div className="space-y-2">
-                                  <div className="flex justify-between text-sm">
-                                    <span>Performance Prediction:</span>
-                                    <span className="font-semibold">{(influencer.scores.performance_pred * 100).toFixed(1)}%</span>
-                                  </div>
-                                  <Progress value={influencer.scores.performance_pred * 100} className="h-2" />
-                                </div>
-                              )}
-                              {influencer.scores.budget_efficiency !== undefined && (
-                                <div className="space-y-2">
-                                  <div className="flex justify-between text-sm">
-                                    <span>Budget Efficiency:</span>
-                                    <span className="font-semibold">{(influencer.scores.budget_efficiency * 100).toFixed(1)}%</span>
-                                  </div>
-                                  <Progress value={influencer.scores.budget_efficiency * 100} className="h-2" />
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="text-center py-6 text-muted-foreground bg-white rounded border">
-                              <BarChart3 className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
-                              <p className="text-sm">Score breakdown not available</p>
-                            </div>
-                          )}
-                        </div>
-                      </TabsContent>
-                      
-                      <TabsContent value="performance" className="mt-4 p-4 bg-gray-50 rounded-lg">
-                        <div className="space-y-4">
-                          <h5 className="font-semibold text-sm">Performance Metrics</h5>
-                          {influencer.performance_metrics ? (
-                            <div className="grid grid-cols-1 gap-3">
-                              {influencer.performance_metrics.engagement_rate && (
-                                <div className="flex items-center justify-between p-3 bg-white rounded border">
-                                  <span className="text-sm">Engagement Rate</span>
-                                  <span className="font-semibold text-green-600">
-                                    {(influencer.performance_metrics.engagement_rate * 100).toFixed(2)}%
-                                  </span>
-                                </div>
-                              )}
-                              {influencer.performance_metrics.authenticity_score && (
-                                <div className="flex items-center justify-between p-3 bg-white rounded border">
-                                  <span className="text-sm">Authenticity Score</span>
-                                  <span className="font-semibold text-blue-600">
-                                    {(influencer.performance_metrics.authenticity_score * 100).toFixed(1)}%
-                                  </span>
-                                </div>
-                              )}
-                              {influencer.performance_metrics.reach_potential && (
-                                <div className="flex items-center justify-between p-3 bg-white rounded border">
-                                  <span className="text-sm">Reach Potential</span>
-                                  <span className="font-semibold text-purple-600">
-                                    {(influencer.performance_metrics.reach_potential * 100).toFixed(1)}%
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="text-center py-6 text-muted-foreground bg-white rounded border">
-                              <BarChart3 className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
-                              <p className="text-sm">No performance metrics available</p>
-                            </div>
-                          )}
-                        </div>
-                      </TabsContent>
-                      
-                      <TabsContent value="strategy" className="mt-4 p-4 bg-gray-50 rounded-lg">
-                        <div className="space-y-4">
-                          <h5 className="font-semibold text-sm">Campaign Strategy Recommendations</h5>
-                          <div className="space-y-3">
-                            {/* Hanya tampilkan strategy jika ada data yang relevan */}
-                            {influencer.optimal_content_mix && (
-                              <div className="p-3 bg-white rounded border">
-                                <h6 className="font-medium text-sm mb-2">Content Strategy:</h6>
-                                <p className="text-sm text-gray-600">
-                                  {influencer.optimal_content_mix.reels_count > 0 && (
-                                    <>Focus on {influencer.optimal_content_mix.reels_count} Reels content </>
                                   )}
-                                  {influencer.expertise && (
-                                    <>with {influencer.expertise} themes </>
+                                  
+                                  {influencer.optimal_content_mix?.total_cost && (
+                                    <div className="p-3 bg-card rounded border border-border">
+                                      <h6 className="font-medium text-sm mb-2">Budget Allocation:</h6>
+                                      <p className="text-sm text-muted-foreground">
+                                        Recommended budget: Rp {(influencer.optimal_content_mix.total_cost / 1000000).toFixed(1)}M 
+                                        {influencer.optimal_content_mix.total_impact && (
+                                          <> for optimal ROI based on projected impact of {influencer.optimal_content_mix.total_impact.toFixed(1)}</>
+                                        )}.
+                                      </p>
+                                    </div>
                                   )}
-                                  for maximum audience engagement.
-                                </p>
+                                  
+                                  {influencer.performance_metrics?.engagement_rate && (
+                                    <div className="p-3 bg-card rounded border border-border">
+                                      <h6 className="font-medium text-sm mb-2">Best Posting Times:</h6>
+                                      <p className="text-sm text-muted-foreground">
+                                        Optimize posting schedule during peak engagement hours based on 
+                                        {(influencer.performance_metrics.engagement_rate * 100).toFixed(1)}% average engagement rate.
+                                      </p>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Fallback jika tidak ada data strategy */}
+                                  {!influencer.optimal_content_mix && !influencer.performance_metrics && (
+                                    <div className="text-center py-6 text-muted-foreground bg-card rounded border border-border">
+                                      <Target className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
+                                      <p className="text-sm">Strategy recommendations will be available after data analysis</p>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                            )}
-                            
-                            {influencer.optimal_content_mix?.total_cost && (
-                              <div className="p-3 bg-white rounded border">
-                                <h6 className="font-medium text-sm mb-2">Budget Allocation:</h6>
-                                <p className="text-sm text-gray-600">
-                                  Recommended budget: Rp {(influencer.optimal_content_mix.total_cost / 1000000).toFixed(1)}M 
-                                  {influencer.optimal_content_mix.total_impact && (
-                                    <> for optimal ROI based on projected impact of {influencer.optimal_content_mix.total_impact.toFixed(1)}</>
-                                  )}.
-                                </p>
-                              </div>
-                            )}
-                            
-                            {influencer.performance_metrics?.engagement_rate && (
-                              <div className="p-3 bg-white rounded border">
-                                <h6 className="font-medium text-sm mb-2">Best Posting Times:</h6>
-                                <p className="text-sm text-gray-600">
-                                  Optimize posting schedule during peak engagement hours based on 
-                                  {(influencer.performance_metrics.engagement_rate * 100).toFixed(1)}% average engagement rate.
-                                </p>
-                              </div>
-                            )}
-                            
-                            {/* Fallback jika tidak ada data strategy */}
-                            {!influencer.optimal_content_mix && !influencer.performance_metrics && (
-                              <div className="text-center py-6 text-muted-foreground bg-white rounded border">
-                                <Target className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
-                                <p className="text-sm">Strategy recommendations will be available after data analysis</p>
-                              </div>
-                            )}
-                          </div>
+                            </TabsContent>
+                          </Tabs>
                         </div>
-                      </TabsContent>
-                    </Tabs>
+                      )}
+                    </div>
 
                     {/* Action Buttons */}
                     <div className="flex items-center justify-end pt-4 border-t mt-6">
