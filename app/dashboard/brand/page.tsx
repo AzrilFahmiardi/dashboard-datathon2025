@@ -162,6 +162,13 @@ export default function BrandDashboard() {
     }
   }, [user])
 
+  // Load AI insights and strategies when campaign details are shown
+  useEffect(() => {
+    if (selectedCampaignDetail) {
+      loadAIDataForCampaign(selectedCampaignDetail)
+    }
+  }, [selectedCampaignDetail])
+
   // Handle URL parameters for tab switching
   useEffect(() => {
     const tab = searchParams.get('tab')
@@ -183,6 +190,44 @@ export default function BrandDashboard() {
       toast.error('Failed to load campaigns')
     } finally {
       setIsLoadingCampaigns(false)
+    }
+  }
+
+  // Load AI insights and strategies from Firebase for a specific campaign
+  const loadAIDataForCampaign = async (briefId: string) => {
+    try {
+      console.log(`📥 Loading AI data from Firebase for brief: ${briefId}`)
+      
+      // Load insights and strategies from Firebase
+      const [insights, strategies] = await Promise.all([
+        firebaseCampaignService.getAIInsights(briefId),
+        firebaseCampaignService.getAIStrategies(briefId)
+      ])
+
+      // Convert Firebase insights to local state format
+      const formattedInsights: {[key: string]: any} = {}
+      Object.entries(insights).forEach(([key, value]: [string, any]) => {
+        if (value?.content) {
+          formattedInsights[key] = value.content
+        }
+      })
+
+      // Convert Firebase strategies to local state format
+      const formattedStrategies: {[key: string]: string} = {}
+      Object.entries(strategies).forEach(([key, value]: [string, any]) => {
+        if (value?.content) {
+          formattedStrategies[key] = value.content
+        }
+      })
+
+      // Update local states
+      setInfluencerInsights(prev => ({ ...prev, ...formattedInsights }))
+      setInfluencerStrategies(prev => ({ ...prev, ...formattedStrategies }))
+
+      console.log(`✅ Loaded ${Object.keys(formattedInsights).length} insights and ${Object.keys(formattedStrategies).length} strategies from Firebase`)
+    } catch (error) {
+      console.warn('⚠️ Failed to load AI data from Firebase:', error)
+      // Don't show error to user - this is non-critical
     }
   }
 
@@ -414,7 +459,7 @@ export default function BrandDashboard() {
       console.log('🤖 Generating AI strategy for:', influencer.username)
       console.log('📦 Campaign data being sent:', campaign)
       
-      // Prepare campaign brief data if available
+      // Prepare campaign brief data focused on content strategy, not quantities
       const campaignBrief = campaign ? {
         brand_name: campaign.brand_name,
         product_name: campaign.product_name,
@@ -423,7 +468,7 @@ export default function BrandDashboard() {
         industry: campaign.industry,
         budget: campaign.budget,
         target_audience: campaign.audience_preference,
-        content_requirements: campaign.output?.content_types?.join(', '),
+        content_types: campaign.output?.content_types, // Send as array for content strategy
         persona: campaign.influencer_persona,
         marketing_objective: campaign.marketing_objective?.join(', ')
       } : undefined
@@ -433,24 +478,53 @@ export default function BrandDashboard() {
       // Call Gemini AI service
       const strategy = await geminiAIService.generateInfluencerStrategy(influencer, campaignBrief)
       
-      // Store the generated strategy
-      setInfluencerStrategies(prev => ({
-        ...prev,
-        [influencerKey]: strategy
-      }))
+      if (strategy && strategy.trim()) {
+        // Store strategy in local state first
+        setInfluencerStrategies(prev => ({
+          ...prev,
+          [influencerKey]: strategy
+        }))
 
-      console.log('✅ Strategy generated successfully for:', influencer.username)
-      return strategy
+        // Save to Firebase if campaign is available
+        if (campaign?.brief_id) {
+          try {
+            await firebaseCampaignService.saveInfluencerStrategy(
+              campaign.brief_id,
+              influencer.username,
+              strategy
+            )
+            console.log(`💾 Strategy saved to Firebase for:`, influencer.username)
+          } catch (firebaseError) {
+            console.warn(`⚠️ Failed to save strategy to Firebase:`, firebaseError)
+            // Continue execution - local state still has the data
+          }
+        }
+
+        console.log('✅ Strategy generated successfully for:', influencer.username)
+        toast.success('Marketing strategy generated successfully!')
+        return strategy
+      } else {
+        throw new Error('Empty or invalid strategy received from Gemini AI')
+      }
     } catch (error) {
       console.error('❌ Error generating strategy:', error)
       
-      // Set error state instead of fallback
+      // Set error state with fallback message
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      const fallbackMessage = 'Unable to generate strategy. Please try again later.'
+      
       setStrategyErrors(prev => ({
         ...prev,
-        [influencerKey]: `Failed to generate strategy: ${errorMessage}`
+        [influencerKey]: errorMessage.includes('API') ? errorMessage : fallbackMessage
+      }))
+
+      // Store empty strategy to avoid repeated API calls for known failures
+      setInfluencerStrategies(prev => ({
+        ...prev,
+        [influencerKey]: '' // Empty string to indicate failed generation
       }))
       
+      toast.error('Failed to generate marketing strategy')
       return null
     } finally {
       setIsGeneratingStrategy(prev => ({ ...prev, [influencerKey]: false }))
@@ -469,7 +543,7 @@ export default function BrandDashboard() {
       industry: campaign.industry,
       budget: campaign.budget,
       target_audience: campaign.audience_preference,
-      content_requirements: campaign.output?.content_types?.join(', '),
+      content_types: campaign.output?.content_types, // Send as array for content strategy
       persona: campaign.influencer_persona,
       marketing_objective: Array.isArray(campaign.marketing_objective) 
         ? campaign.marketing_objective.join(', ') 
@@ -546,28 +620,54 @@ export default function BrandDashboard() {
           break
       }
       
-      if (insights) {
-        // Store the generated insights
+      if (insights && insights.trim()) {
+        // Store insights in local state first
         setInfluencerInsights(prev => ({
           ...prev,
           [insightKey]: insights
         }))
 
+        // Save to Firebase if campaign is available
+        if (campaign?.brief_id) {
+          try {
+            await firebaseCampaignService.saveInfluencerInsights(
+              campaign.brief_id,
+              influencer.username,
+              sectionType,
+              insights
+            )
+            console.log(`💾 ${sectionType} insights saved to Firebase for:`, influencer.username)
+          } catch (firebaseError) {
+            console.warn(`⚠️ Failed to save ${sectionType} insights to Firebase:`, firebaseError)
+            // Continue execution - local state still has the data
+          }
+        }
+
         console.log(`✅ ${sectionType} insights generated successfully for:`, influencer.username)
+        toast.success(`${sectionType} insights generated successfully!`)
         return insights
       } else {
-        throw new Error(`Failed to generate ${sectionType} insights from Gemini AI`)
+        throw new Error(`Empty or invalid ${sectionType} insights received from Gemini AI`)
       }
     } catch (error) {
       console.error(`❌ Error generating ${sectionType} insights:`, error)
       
-      // Set error state
+      // Set error state with fallback message
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      const fallbackMessage = `Unable to generate ${sectionType} insights. Please try again later.`
+      
       setInsightsErrors(prev => ({
         ...prev,
-        [insightKey]: `Failed to generate ${sectionType} insights: ${errorMessage}`
+        [insightKey]: errorMessage.includes('API') ? errorMessage : fallbackMessage
+      }))
+
+      // Store empty insights to avoid repeated API calls for known failures
+      setInfluencerInsights(prev => ({
+        ...prev,
+        [insightKey]: '' // Empty string to indicate failed generation
       }))
       
+      toast.error(`Failed to generate ${sectionType} insights`)
       return null
     } finally {
       setIsGeneratingInsights(prev => ({ ...prev, [insightKey]: false }))

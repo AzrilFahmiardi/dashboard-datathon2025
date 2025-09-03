@@ -89,6 +89,8 @@ export interface CampaignData {
   updated_at: Timestamp
   has_recommendations?: boolean
   recommendation_data?: any
+  ai_insights?: {[key: string]: any} // Store AI insights for each influencer section
+  ai_strategies?: {[key: string]: any} // Store AI strategies for each influencer
 }
 
 const CAMPAIGNS_COLLECTION = 'campaigns'
@@ -267,6 +269,101 @@ class FirebaseCampaignService {
     } catch (error) {
       console.error('Error saving recommendations:', error)
       throw new Error('Failed to save recommendations')
+    }
+  }
+
+  // Menyimpan AI insights untuk influencer tertentu dalam campaign
+  async saveInfluencerInsights(briefId: string, influencerUsername: string, sectionType: string, insights: string): Promise<void> {
+    try {
+      console.log(`Saving ${sectionType} insights for ${influencerUsername} in brief:`, briefId)
+
+      const campaign = await this.getCampaignByBriefId(briefId)
+      if (!campaign || !campaign.id) {
+        throw new Error('Campaign not found')
+      }
+
+      // Create insights object structure
+      const insightKey = `${influencerUsername}_${sectionType}_insights`
+      const existingInsights = campaign.ai_insights || {}
+      
+      const updatedInsights = {
+        ...existingInsights,
+        [insightKey]: {
+          content: insights,
+          generated_at: new Date().toISOString(),
+          section_type: sectionType,
+          influencer: influencerUsername
+        }
+      }
+
+      const docRef = doc(db, CAMPAIGNS_COLLECTION, campaign.id)
+      await updateDoc(docRef, {
+        ai_insights: updatedInsights,
+        updated_at: Timestamp.now()
+      })
+      
+      console.log(`✅ Successfully saved ${sectionType} insights for ${influencerUsername}`)
+    } catch (error) {
+      console.error(`❌ Error saving ${sectionType} insights:`, error)
+      throw new Error(`Failed to save ${sectionType} insights`)
+    }
+  }
+
+  // Menyimpan strategy untuk influencer tertentu
+  async saveInfluencerStrategy(briefId: string, influencerUsername: string, strategy: string): Promise<void> {
+    try {
+      console.log(`Saving strategy for ${influencerUsername} in brief:`, briefId)
+
+      const campaign = await this.getCampaignByBriefId(briefId)
+      if (!campaign || !campaign.id) {
+        throw new Error('Campaign not found')
+      }
+
+      // Create strategy object structure
+      const strategyKey = `${influencerUsername}_strategy`
+      const existingStrategies = campaign.ai_strategies || {}
+      
+      const updatedStrategies = {
+        ...existingStrategies,
+        [strategyKey]: {
+          content: strategy,
+          generated_at: new Date().toISOString(),
+          influencer: influencerUsername
+        }
+      }
+
+      const docRef = doc(db, CAMPAIGNS_COLLECTION, campaign.id)
+      await updateDoc(docRef, {
+        ai_strategies: updatedStrategies,
+        updated_at: Timestamp.now()
+      })
+      
+      console.log(`✅ Successfully saved strategy for ${influencerUsername}`)
+    } catch (error) {
+      console.error(`❌ Error saving strategy:`, error)
+      throw new Error(`Failed to save strategy`)
+    }
+  }
+
+  // Mengambil AI insights untuk campaign tertentu
+  async getAIInsights(briefId: string): Promise<{[key: string]: any}> {
+    try {
+      const campaign = await this.getCampaignByBriefId(briefId)
+      return campaign?.ai_insights || {}
+    } catch (error) {
+      console.error('Error fetching AI insights:', error)
+      return {}
+    }
+  }
+
+  // Mengambil strategies untuk campaign tertentu
+  async getAIStrategies(briefId: string): Promise<{[key: string]: any}> {
+    try {
+      const campaign = await this.getCampaignByBriefId(briefId)
+      return campaign?.ai_strategies || {}
+    } catch (error) {
+      console.error('Error fetching AI strategies:', error)
+      return {}
     }
   }
 
