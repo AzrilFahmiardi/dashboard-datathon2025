@@ -3361,10 +3361,6 @@ Jika data tidak tersedia untuk menjawab pertanyaan, jelaskan fitur mana yang per
             <Card className="p-4 hover:shadow-lg transition-shadow duration-200">
               <div className="flex items-start justify-between">
                 <FileText className="h-5 w-5 text-muted-foreground" />
-                <div className="flex items-center text-sm text-green-600">
-                  <TrendingUp className="h-3 w-3 mr-1" />
-                  +12.5%
-                </div>
               </div>
               <div className="mt-3">
                 <div className="text-2xl font-bold">
@@ -3380,10 +3376,6 @@ Jika data tidak tersedia untuk menjawab pertanyaan, jelaskan fitur mana yang per
             <Card className="p-4 hover:shadow-lg transition-shadow duration-200">
               <div className="flex items-start justify-between">
                 <Users className="h-5 w-5 text-muted-foreground" />
-                <div className="flex items-center text-sm text-green-600">
-                  <TrendingUp className="h-3 w-3 mr-1" />
-                  +8.2%
-                </div>
               </div>
               <div className="mt-3">
                 <div className="text-2xl font-bold">
@@ -3399,10 +3391,6 @@ Jika data tidak tersedia untuk menjawab pertanyaan, jelaskan fitur mana yang per
             <Card className="p-4 hover:shadow-lg transition-shadow duration-200">
               <div className="flex items-start justify-between">
                 <Calendar className="h-5 w-5 text-muted-foreground" />
-                <div className="flex items-center text-sm text-green-600">
-                  <TrendingUp className="h-3 w-3 mr-1" />
-                  +5.3%
-                </div>
               </div>
               <div className="mt-3">
                 <div className="text-2xl font-bold">
@@ -3418,10 +3406,6 @@ Jika data tidak tersedia untuk menjawab pertanyaan, jelaskan fitur mana yang per
             <Card className="p-4 hover:shadow-lg transition-shadow duration-200">
               <div className="flex items-start justify-between">
                 <DollarSign className="h-5 w-5 text-muted-foreground" />
-                <div className="flex items-center text-sm text-green-600">
-                  <TrendingUp className="h-3 w-3 mr-1" />
-                  +15.7%
-                </div>
               </div>
               <div className="mt-3">
                 <div className="text-2xl font-bold">
@@ -3593,14 +3577,6 @@ Jika data tidak tersedia untuk menjawab pertanyaan, jelaskan fitur mana yang per
 
                       {/* Legend */}
                       <div className="flex items-center space-x-4 text-xs">
-                        <div className="flex items-center space-x-1">
-                          <div className="w-3 h-3 bg-primary/20 rounded"></div>
-                          <span>Campaign Launch (In Progress)</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <div className="w-3 h-3 bg-green-100 rounded"></div>
-                          <span>Content Deadline (Upcoming)</span>
-                        </div>
                         <div className="flex items-center space-x-1">
                           <div className="w-3 h-3 bg-amber-100 rounded"></div>
                           <span>Planning Phase</span>
