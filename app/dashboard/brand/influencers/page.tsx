@@ -301,16 +301,6 @@ export default function InfluencerListPage() {
                         <Badge variant="outline" className="text-xs">
                           {influencer.expertise_field}
                         </Badge>
-                        {influencer.campaign_success_signif && (
-                          <Badge className="bg-green-100 text-green-800 border-green-200 text-xs" variant="outline">
-                            ✅ Proven
-                          </Badge>
-                        )}
-                        {influencer.has_relevant_history && (
-                          <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                            📈 History
-                          </Badge>
-                        )}
                       </div>
                     </div>
 
@@ -337,11 +327,6 @@ export default function InfluencerListPage() {
                       {/* Additional Info & Actions */}
                       <div className="flex justify-between items-center">
                         <div className="flex gap-1">
-                          {influencer.behavior_consistency && (
-                            <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                              🎯 Consistent
-                            </Badge>
-                          )}
                         </div>
                         <div className="flex space-x-2">
                           <Button variant="outline" size="sm">

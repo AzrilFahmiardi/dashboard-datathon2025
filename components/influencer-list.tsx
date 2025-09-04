@@ -206,10 +206,6 @@ export function InfluencerList() {
           <Card className="p-4">
             <div className="flex items-start justify-between">
               <Award className="h-5 w-5 text-muted-foreground" />
-              <div className="flex items-center text-sm text-green-600">
-                <CheckCircle className="h-3 w-3 mr-1" />
-                Proven
-              </div>
             </div>
             <div className="mt-3">
               <div className="text-2xl font-bold">{stats.successfulCampaigns}</div>
@@ -367,11 +363,6 @@ export function InfluencerList() {
                   <Badge className={getTierColor(influencer.tier_followers)} variant="outline">
                     {influencer.tier_followers}
                   </Badge>
-                  {influencer.campaign_success_signif && (
-                    <Badge className="bg-green-100 text-green-800 border-green-200 text-xs" variant="outline">
-                      ✅ Proven
-                    </Badge>
-                  )}
                 </div>
               </div>
 
@@ -433,16 +424,6 @@ export function InfluencerList() {
                 {/* Action Buttons */}
                 <div className="flex items-center justify-between pt-2">
                   <div className="flex gap-1">
-                    {influencer.has_relevant_history && (
-                      <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                        📈 History
-                      </Badge>
-                    )}
-                    {influencer.behavior_consistency && (
-                      <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                        🎯 Consistent
-                      </Badge>
-                    )}
                   </div>
                   <Button size="sm" variant="outline">
                     View Details
