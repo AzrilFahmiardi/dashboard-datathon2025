@@ -300,7 +300,7 @@ export default function BrandDashboard() {
         case '📈': return <TrendingUp className="w-4 h-4 text-green-500" />
         case '💡': return <Zap className="w-4 h-4 text-yellow-500" />
         case '⚠️': return <AlertTriangle className="w-4 h-4 text-orange-500" />
-        case '💰': return <DollarSign className="w-4 h-4 text-emerald-500" />
+        case '💰': return <div className="w-4 h-4 text-emerald-500 flex items-center justify-center font-bold text-xs">Rp</div>
         default: return <Sparkles className="w-4 h-4 text-purple-500" />
       }
     }
@@ -2173,7 +2173,9 @@ Jika data tidak tersedia untuk menjawab pertanyaan, jelaskan fitur mana yang per
                       {influencer.optimal_content_mix?.total_cost && (
                         <div className="space-y-3">
                           <h4 className="font-semibold flex items-center text-sm">
-                            <DollarSign className="w-4 h-4 mr-2 text-green-600" />
+                            <div className="w-4 h-4 mr-2 text-green-600 flex items-center justify-center font-bold text-xs">
+                              Rp
+                            </div>
                             Budget Breakdown
                           </h4>
                           <div className="bg-gray-50 rounded-lg p-4 space-y-2">
@@ -3427,7 +3429,9 @@ Jika data tidak tersedia untuk menjawab pertanyaan, jelaskan fitur mana yang per
 
             <Card className="p-4 hover:shadow-lg transition-shadow duration-200">
               <div className="flex items-start justify-between">
-                <DollarSign className="h-5 w-5 text-muted-foreground" />
+                <div className="h-5 w-5 flex items-center justify-center text-muted-foreground font-bold text-sm">
+                  Rp
+                </div>
               </div>
               <div className="mt-3">
                 <div className="text-2xl font-bold">
@@ -3690,7 +3694,9 @@ Jika data tidak tersedia untuk menjawab pertanyaan, jelaskan fitur mana yang per
                   <CardContent>
                     <div className="h-64 flex items-center justify-center text-muted-foreground">
                       <div className="text-center space-y-2">
-                        <DollarSign className="w-12 h-12 mx-auto text-primary/60" />
+                        <div className="w-12 h-12 mx-auto text-primary/60 flex items-center justify-center font-bold text-2xl">
+                          Rp
+                        </div>
                         <p>Chart: Budget Progression</p>
                         <p className="text-sm text-muted-foreground">Budget efficiency over time</p>
                       </div>
