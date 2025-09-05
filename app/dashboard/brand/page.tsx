@@ -54,6 +54,7 @@ import {
   Edit3,
   Copy,
   X,
+  Trash2,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -216,6 +217,27 @@ export default function BrandDashboard() {
       toast.error('Failed to load campaigns')
     } finally {
       setIsLoadingCampaigns(false)
+    }
+  }
+
+  // Handler untuk menghapus campaign
+  const handleDeleteCampaign = async (campaignId: string, campaignTitle: string, event: React.MouseEvent) => {
+    event.stopPropagation() // Mencegah event bubbling ke card click
+    
+    if (!confirm(`Apakah Anda yakin ingin menghapus campaign "${campaignTitle}"?`)) {
+      return
+    }
+
+    try {
+      await firebaseCampaignService.deleteCampaign(campaignId)
+      
+      // Update state untuk menghapus campaign dari daftar
+      setCampaigns(prev => prev.filter(campaign => campaign.id !== campaignId))
+      
+      toast.success('Campaign berhasil dihapus!')
+    } catch (error) {
+      console.error('Error deleting campaign:', error)
+      toast.error('Gagal menghapus campaign')
     }
   }
 
@@ -3464,10 +3486,13 @@ Jika data tidak tersedia untuk menjawab pertanyaan, jelaskan fitur mana yang per
                         {campaigns.slice(0, 8).map((campaign) => (
                           <div 
                             key={campaign.id}
-                            onClick={() => openCampaignDetail(campaign.brief_id)}
-                            className="flex flex-col justify-between p-3 bg-muted border rounded-lg cursor-pointer hover:shadow-md hover:bg-muted/80 transition-all duration-200"
+                            className="relative flex flex-col justify-between p-3 bg-muted border rounded-lg hover:shadow-md hover:bg-muted/80 transition-all duration-200"
                           >
-                            <div className="space-y-2">
+                            {/* Header dengan judul */}
+                            <div 
+                              onClick={() => openCampaignDetail(campaign.brief_id)}
+                              className="cursor-pointer"
+                            >
                               <div className="flex items-center space-x-2">
                                 <div className="w-2 h-2 bg-primary rounded-full"></div>
                                 <h4 className="font-semibold text-sm flex items-center">
@@ -3477,18 +3502,43 @@ Jika data tidak tersedia untuk menjawab pertanyaan, jelaskan fitur mana yang per
                                   )}
                                 </h4>
                               </div>
+                            </div>
+                            
+                            {/* Content section */}
+                            <div 
+                              onClick={() => openCampaignDetail(campaign.brief_id)}
+                              className="space-y-2 cursor-pointer flex-1 mt-2"
+                            >
                               <p className="text-xs text-muted-foreground">{campaign.phase}</p>
                               <p className="text-xs text-muted-foreground">Due: {campaign.due_date}</p>
                             </div>
-                            <div className="flex items-center space-x-2 mt-3">
-                              <Badge variant={campaign.status === 'In Progress' ? 'default' : 'outline'} className="text-xs">
-                                {campaign.status}
-                              </Badge>
-                              {campaign.has_recommendations && (
-                                <Badge variant="secondary" className="text-xs">
-                                  AI Ready
+                            
+                            {/* Bottom section dengan badges dan tombol delete */}
+                            <div className="flex items-center justify-between mt-3">
+                              <div 
+                                onClick={() => openCampaignDetail(campaign.brief_id)}
+                                className="flex items-center space-x-2 cursor-pointer"
+                              >
+                                <Badge variant={campaign.status === 'In Progress' ? 'default' : 'outline'} className="text-xs">
+                                  {campaign.status}
                                 </Badge>
-                              )}
+                                {campaign.has_recommendations && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    AI Ready
+                                  </Badge>
+                                )}
+                              </div>
+                              
+                              {/* Tombol Delete di kanan bawah */}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => handleDeleteCampaign(campaign.id!, campaign.title, e)}
+                                className="h-6 w-6 p-0 text-muted-foreground hover:text-red-600 hover:bg-red-50"
+                                title="Hapus campaign"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
                             </div>
                           </div>
                         ))}
